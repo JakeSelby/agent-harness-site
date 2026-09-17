@@ -127,9 +127,15 @@ function handler(event) {
       roleName: 'ExampleHarnessDeployRole',
       description: `GitHub Actions in ${REPO} (main): sync the site, invalidate CloudFront`,
       assumedBy: new iam.WebIdentityPrincipal(githubProvider.openIdConnectProviderArn, {
-        StringEquals: {
-          'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          'token.actions.githubusercontent.com:sub': `repo:${REPO}:ref:refs/heads/main`,
+        StringEquals: { 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com' },
+        // GitHub issues the subject in two shapes — the plain owner/repo form and
+        // the newer owner@id/repo@id form — so both are accepted, as the other
+        // deploy roles in this account do.
+        StringLike: {
+          'token.actions.githubusercontent.com:sub': [
+            `repo:${REPO}:ref:refs/heads/main`,
+            `repo:${REPO.replace('/', '@*/')}@*:ref:refs/heads/main`,
+          ],
         },
       }),
       maxSessionDuration: cdk.Duration.hours(1),
