@@ -41,11 +41,19 @@ for (const must of ['404.html', 'pagefind/pagefind.js', 'sitemap-index.xml', 'ma
 // The submodule is at the tagged release the site claims to render.
 const version = fs.readFileSync(path.join(vendor, 'VERSION'), 'utf8').trim();
 if (manifest.version !== version) fail(`manifest version ${manifest.version} ≠ VERSION ${version}`);
+// A CI checkout of the submodule is shallow and carries no tags, so fetch the one
+// tag VERSION names before asking whether HEAD is it.
+const git = (args) => execSync(`git ${args}`, { cwd: vendor, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
 try {
-  const tag = execSync('git describe --tags --exact-match', { cwd: vendor, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  git(`fetch --quiet --depth=1 origin tag v${version}`);
+} catch {
+  /* offline or already present: describe below decides */
+}
+try {
+  const tag = git('describe --tags --exact-match');
   if (tag !== `v${version}`) fail(`submodule is at ${tag}, VERSION says v${version}`);
 } catch {
-  fail(`submodule commit is not a tag; VERSION says v${version} (checkout vendor/agent-harness at that tag)`);
+  fail(`submodule commit is not the v${version} tag that VERSION names (checkout vendor/agent-harness at that tag)`);
 }
 
 // Every internal link resolves to a file in dist.

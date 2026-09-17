@@ -4,6 +4,7 @@ import DocsLayout from '../layouts/DocsLayout.astro';
 import MetaStrip from '../components/MetaStrip.astro';
 import EntryCard from '../components/EntryCard.astro';
 import SourceBlock from '../components/SourceBlock.astro';
+import { inlineCode } from '../lib/harness/text.ts';
 import {
   KIND_BLURB,
   KIND_LABEL,
@@ -45,11 +46,6 @@ async function rendered(entry: Entry) {
 }
 
 const kindOf = (e: Entry) => KIND_SINGULAR[e.kind];
-// Docstrings are plain text with backtick spans; escape, then honour the backticks.
-const inlineCode = (text: string) =>
-  text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/`([^`]+)`/g, '<code>$1</code>');
 const kindPill = (e: Entry): string | null => {
   switch (e.kind) {
     case 'rules': return 'loaded every turn';
@@ -67,7 +63,7 @@ const kindPill = (e: Entry): string | null => {
   const kind = props.kind;
   const entries = entriesOf(kind);
   return (
-    <DocsLayout title={KIND_LABEL[kind]} description={KIND_BLURB[kind]} crumbs={[{ label: kind, mono: true }]} sourcePath={kind === 'docs' ? 'docs' : `claude/${kind}`} sourceLabel="View folder on GitHub" kind="Index">
+    <DocsLayout title={KIND_LABEL[kind]} description={KIND_BLURB[kind]} crumbs={[{ label: kind, mono: true }]} sourcePath={kind === 'docs' ? 'docs' : `claude/${kind}`} sourceLabel="View folder on GitHub" kind="Index" wide>
       <div class="eyebrow"><span class="pill amber">{KIND_LABEL[kind]}</span><span class="pill num">{entries.length}</span></div>
       <h1>{KIND_LABEL[kind]}</h1>
       <p class="lede">{KIND_BLURB[kind]}</p>
@@ -104,6 +100,7 @@ const kindPill = (e: Entry): string | null => {
       sourcePath={d.sourcePath}
       sourceLabel="View folder on GitHub"
       kind="Stance"
+      wide
     >
       <div class="eyebrow"><span class="pill amber">Stance</span><span class="pill">one variant loads every turn</span></div>
       <h1>{d.title}</h1>
@@ -131,15 +128,10 @@ const kindPill = (e: Entry): string | null => {
       <div data-pagefind-ignore>
         {panels.map(({ v, r: body }) => (
           <div class="panel harness-prose" id={`panel-${v.variant}`} role="tabpanel" aria-labelledby={`tab-${v.variant}`} hidden={v.variant !== initial}>
-            <h2 style="margin-top:0.5rem;padding-top:0"><a href={v.route}>{v.title}</a></h2>
+            <h2><a href={v.route}>{v.title}</a></h2>
             {body && <body.Content />}
             {v.variant === 'off' && <p class="muted small">An <code>off</code> variant still links a one-line file, so <code>/context</code> shows the stance is set and silent rather than missing.</p>}
           </div>
-        ))}
-      </div>
-      <div class="variant-grid">
-        {d.variants.map((v) => (
-          <a href={v.route}><b>{v.variant}{v.isDefault && <span class="pill amber">default</span>}</b>{v.summary}</a>
         ))}
       </div>
       <p class="ritual-note">
@@ -217,7 +209,9 @@ const kindPill = (e: Entry): string | null => {
       {e.hook && (
         <div class="harness-prose">
           <h2 id="what-it-does">What it does</h2>
-          {e.hook.docstring.split(/\n\s*\n/).slice(1).map((p) => <p set:html={inlineCode(p.replace(/\s+/g, ' '))} />)}
+          {e.hook.docstring.split(/\n\s*\n/).slice(1).map((para) => (
+            <p set:html={inlineCode(para.replace(/\s+/g, ' '))}></p>
+          ))}
           <h2 id="when-it-runs">When it runs</h2>
           <p>
             Claude Code fires it on <code>{e.hook.event}</code>{e.hook.matcher && <> when the tool matches <code>{e.hook.matcher}</code></>}
