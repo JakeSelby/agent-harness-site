@@ -50,14 +50,14 @@ describe('the registry', () => {
   const r = getRegistry();
   const c = getCounts();
 
-  it('counts what the README claims for v0.6.1', () => {
+  it('counts what the README claims for v0.7.0', () => {
     expect(c.rules).toBe(10);
     expect(c.stanceDimensions).toBe(8);
     expect(c.stanceVariants).toBe(23);
-    expect(c.skills).toBe(13);
+    expect(c.skills).toBe(14);
     expect(c.agents).toBe(7);
     expect(c.commands).toBe(5);
-    expect(c.hooks).toBe(10);
+    expect(c.hooks).toBe(11);
     expect(c.outputStyles).toBe(1);
     expect(c.docs).toBe(10);
   });
@@ -138,9 +138,9 @@ describe('the registry', () => {
 
 describe('hooks', () => {
   const hooks = listHooks();
-  it('joins settings, ownership and docstrings into the 10 hooks v0.6.1 registers', () => {
-    expect(hooks).toHaveLength(10);
-    expect(hooks.map((h) => h.id).sort()).toEqual(['filter-output', 'grade-bash', 'neutralize', 'plan-card', 'plan-webfetch', 'readonly-bash', 'session', 'stop-gate', 'tier-spawns', 'usage-log']);
+  it('joins settings, ownership and docstrings into the 11 hooks v0.7.0 registers', () => {
+    expect(hooks).toHaveLength(11);
+    expect(hooks.map((h) => h.id).sort()).toEqual(['brief-guard', 'filter-output', 'grade-bash', 'neutralize', 'plan-card', 'plan-webfetch', 'readonly-bash', 'session', 'stop-gate', 'tier-spawns', 'usage-log']);
   });
   it('knows which hook a stance gates', () => {
     const card = hooks.find((h) => h.id === 'plan-card')!;
@@ -149,7 +149,7 @@ describe('hooks', () => {
     expect(card.variant).toBe('review-card');
     expect(card.event).toBe('PostToolUse');
     expect(card.matcher).toBe('Write|Edit');
-    expect(hooks.filter((h) => h.always)).toHaveLength(9);
+    expect(hooks.filter((h) => h.always)).toHaveLength(10);
   });
   it('carries the docstring and the helper', () => {
     const gate = hooks.find((h) => h.id === 'stop-gate')!;
