@@ -1,0 +1,18 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+import { getCounts } from '../lib/harness/registry.ts';
+
+const c = getCounts();
+---
+
+<DocsLayout title="Not found" description="That page is not here." crumbs={[{ label: '404' }]} index={false}>
+  <div class="eyebrow"><span class="pill">404</span></div>
+  <h1>Not here.</h1>
+  <p class="lede">The harness may have renamed it since this site was built, or the link was wrong. Everything the site has is in the tree on the left.</p>
+  <div class="cards">
+    <a class="card" href="/rules/"><span class="name sans">Rules</span><span class="desc">{c.rules}, loaded every turn</span></a>
+    <a class="card" href="/stances/"><span class="name sans">Stances</span><span class="desc">{c.stanceDimensions} dimensions, {c.stanceVariants} variants</span></a>
+    <a class="card" href="/skills/"><span class="name sans">Skills</span><span class="desc">{c.skills}, loaded on invocation</span></a>
+    <a class="card" href="/"><span class="name sans">Start over</span><span class="desc">Back to the overview</span></a>
+  </div>
+</DocsLayout>

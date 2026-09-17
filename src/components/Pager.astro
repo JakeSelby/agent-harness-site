@@ -1,0 +1,24 @@
+---
+import type { Entry } from '../lib/harness/registry.ts';
+import { KIND_SINGULAR } from '../lib/harness/registry.ts';
+
+interface Props { prev: Entry | null; next: Entry | null }
+const { prev, next } = Astro.props;
+---
+
+<nav class="pager" aria-label="Previous and next">
+  {prev && (
+    <a href={prev.route}>
+      <span class="dir">← Previous</span>
+      <span class="name">{prev.label}</span>
+      <span class="kind">{KIND_SINGULAR[prev.kind]}</span>
+    </a>
+  )}
+  {next && (
+    <a href={next.route} class="next">
+      <span class="dir">Next →</span>
+      <span class="name">{next.label}</span>
+      <span class="kind">{KIND_SINGULAR[next.kind]}</span>
+    </a>
+  )}
+</nav>

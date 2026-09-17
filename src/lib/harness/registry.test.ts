@@ -1,0 +1,175 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { VENDOR } from './paths.ts';
+import { listHooks } from './hooks.ts';
+import { honesty, listCli } from './cli.ts';
+import {
+  entriesOf,
+  firstParagraph,
+  firstSentence,
+  flatten,
+  getCounts,
+  getRegistry,
+  getTree,
+  manifest,
+  neighbours,
+  parseFrontmatter,
+  sourceUrl,
+  version,
+} from './registry.ts';
+
+describe('the submodule', () => {
+  it('is checked out at the tag named by VERSION', () => {
+    expect(fs.existsSync(path.join(VENDOR, 'VERSION'))).toBe(true);
+    expect(version()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+});
+
+describe('parseFrontmatter', () => {
+  it('reads flat key: value pairs and returns the body', () => {
+    const { data, body } = parseFrontmatter('---\nname: x\ndescription: Does a thing. Use when y.\nargument-hint: <topic>\n---\n# Title\n\nBody');
+    expect(data).toEqual({ name: 'x', description: 'Does a thing. Use when y.', 'argument-hint': '<topic>' });
+    expect(body).toBe('# Title\n\nBody');
+  });
+  it('returns the whole text when there is no frontmatter', () => {
+    expect(parseFrontmatter('# Only\n').data).toEqual({});
+  });
+});
+
+describe('summaries', () => {
+  it('takes the first sentence in plain text', () => {
+    expect(firstSentence('Prove **it** is `real`. Use when x.')).toBe('Prove it is real.');
+  });
+  it('takes the first paragraph or bullet after the H1', () => {
+    expect(firstParagraph('\n- **Read narrowly.** Never cat a whole file.\n- second\n')).toBe('Read narrowly. Never cat a whole file.');
+  });
+});
+
+describe('the registry', () => {
+  const r = getRegistry();
+  const c = getCounts();
+
+  it('counts what the README claims for v0.2.0', () => {
+    expect(c.rules).toBe(10);
+    expect(c.stanceDimensions).toBe(8);
+    expect(c.stanceVariants).toBe(23);
+    expect(c.skills).toBe(13);
+    expect(c.agents).toBe(7);
+    expect(c.commands).toBe(5);
+    expect(c.hooks).toBe(7);
+    expect(c.outputStyles).toBe(1);
+    expect(c.docs).toBe(10);
+  });
+
+  it('gives every entry a title, a route and a source file that exists', () => {
+    for (const e of flatten()) {
+      expect(e.title, e.id).not.toBe('');
+      expect(e.route).toMatch(/^\/.+\/$/);
+      expect(fs.existsSync(path.join(VENDOR, e.sourcePath)), e.sourcePath).toBe(true);
+    }
+  });
+
+  it('has unique routes in a stable reading order', () => {
+    const routes = flatten().map((e) => e.route);
+    expect(new Set(routes).size).toBe(routes.length);
+    expect(routes[0]).toBe('/rules/cache-hygiene/');
+    expect(routes.at(-1)).toBe('/contributing/');
+    expect(flatten()).toEqual(flatten());
+  });
+
+  it('marks the default variant of each stance from config.example.json', () => {
+    const testing = r.stances.find((d) => d.id === 'testing')!;
+    expect(testing.defaultVariant).toBe('required');
+    expect(testing.variants.map((v) => v.variant)).toEqual(['off', 'pragmatic', 'required']);
+    expect(testing.variants.find((v) => v.isDefault)?.variant).toBe('required');
+    expect(r.stances.every((d) => d.defaultVariant && d.variants.some((v) => v.variant === d.defaultVariant))).toBe(true);
+  });
+
+  it('reads agent frontmatter into the meta strip', () => {
+    const builder = r.agents.find((a) => a.id === 'builder')!;
+    expect(builder.frontmatter.model).toBe('opus');
+    expect(builder.meta.find((m) => m.label === 'Tools')?.values).toContain('Edit');
+    const others = r.agents.filter((a) => a.id !== 'builder');
+    expect(others.every((a) => !a.meta.find((m) => m.label === 'Tools')?.values?.includes('Edit'))).toBe(true);
+  });
+
+  it('orders commands as the ritual runs', () => {
+    expect(r.commands.map((cmd) => cmd.id)).toEqual(['research', 'plan', 'build', 'review', 'handoff']);
+  });
+
+  it('lists the files a skill ships', () => {
+    const plan = r.skills.find((s) => s.id === 'plan-authoring')!;
+    expect(plan.files).toEqual(['EXAMPLE.md', 'TEMPLATE.md']);
+    expect(plan.summary).toMatch(/^Write or revise a plan file/);
+  });
+
+  it('walks the pager across kinds', () => {
+    const { prev, next } = neighbours('/rules/working-style/');
+    expect(prev?.route).toBe('/rules/voice-and-format/');
+    expect(next?.route).toBe('/stances/autonomy/ask/');
+    expect(neighbours('/nope/')).toEqual({ prev: null, next: null });
+  });
+
+  it('builds a tree with one group per kind and a nested stance dimension', () => {
+    const tree = getTree();
+    expect(tree.map((g) => g.kind)).toEqual(['start', 'rules', 'stances', 'skills', 'agents', 'commands', 'hooks', 'output-styles', 'docs']);
+    const stances = tree.find((g) => g.kind === 'stances')!;
+    expect(stances.items.find((i) => i.label === 'testing')?.children?.map((v) => v.label)).toEqual(['off', 'pragmatic', 'required']);
+    expect(entriesOf('stances')).toHaveLength(23);
+  });
+
+  it('points source links at the pinned tag', () => {
+    expect(sourceUrl('claude/skills/plan-authoring/SKILL.md')).toBe(`https://github.com/JakeSelby/agent-harness/blob/v${version()}/claude/skills/plan-authoring/SKILL.md`);
+    expect(sourceUrl('claude/stances/testing')).toBe(`https://github.com/JakeSelby/agent-harness/tree/v${version()}/claude/stances/testing`);
+  });
+
+  it('publishes a manifest with one route per page', () => {
+    const m = manifest();
+    expect(m.version).toBe(version());
+    const routes = m.routes.map((x) => x.route);
+    expect(new Set(routes).size).toBe(routes.length);
+    expect(routes).toContain('/skills/plan-authoring/');
+    expect(routes).toContain('/stances/testing/');
+    expect(routes).toContain('/hooks/stop-gate/');
+    expect(routes).toContain('/cli/');
+  });
+});
+
+describe('hooks', () => {
+  const hooks = listHooks();
+  it('joins settings, ownership and docstrings into the seven hooks v0.2.0 registers', () => {
+    expect(hooks).toHaveLength(7);
+    expect(hooks.map((h) => h.id).sort()).toEqual(['filter-output', 'neutralize', 'plan-card', 'readonly-bash', 'session', 'stop-gate', 'usage-log']);
+  });
+  it('knows which hook a stance gates', () => {
+    const card = hooks.find((h) => h.id === 'plan-card')!;
+    expect(card.always).toBe(false);
+    expect(card.stance).toBe('plan-ceremony');
+    expect(card.variant).toBe('review-card');
+    expect(card.event).toBe('PostToolUse');
+    expect(card.matcher).toBe('Write|Edit');
+    expect(hooks.filter((h) => h.always)).toHaveLength(6);
+  });
+  it('carries the docstring and the helper', () => {
+    const gate = hooks.find((h) => h.id === 'stop-gate')!;
+    expect(gate.summary).toMatch(/^Stop hook: run the repository's own gate/);
+    expect(gate.source).toContain('MAX_BLOCKS');
+    expect(hooks.find((h) => h.id === 'filter-output')?.helper).toBe('claude/hooks/filter-lines.py');
+  });
+});
+
+describe('the CLI and the honesty strip', () => {
+  it('finds every subcommand in bin/harness', () => {
+    const names = listCli().map((c) => c.name);
+    expect(names).toEqual(['install', 'sync', 'diff', 'doctor', 'uninstall', 'lint', 'usage', 'workspace', 'config']);
+    expect(listCli().every((c) => c.help.length > 0)).toBe(true);
+  });
+  it('reads the always-loaded cap and counts the tests', () => {
+    const h = honesty();
+    expect(h.cap).toBe(200);
+    expect(h.tests).toBeGreaterThan(150);
+    expect(h.testFiles).toBeGreaterThan(10);
+    expect(h.ci).toBe(true);
+  });
+});

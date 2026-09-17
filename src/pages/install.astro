@@ -1,0 +1,70 @@
+---
+import fs from 'node:fs';
+import DocsLayout from '../layouts/DocsLayout.astro';
+import SourceBlock from '../components/SourceBlock.astro';
+import { getRegistry } from '../lib/harness/registry.ts';
+import { vendorFile } from '../lib/harness/paths.ts';
+
+const r = getRegistry();
+const config = fs.readFileSync(vendorFile('config.example.json'), 'utf8').trim();
+
+const clone = [
+  'git clone https://github.com/JakeSelby/agent-harness.git ~/repos/agent-harness',
+  'cd ~/repos/agent-harness',
+  'bin/harness install   # Homebrew packages, VS Code + extensions, Claude Code, Codex, gh, then sync',
+].join('\n');
+const adopt = 'bin/harness sync --adopt   # --adopt moves any pre-existing ~/.claude files aside (recorded, reversible)';
+const after = ['bin/harness doctor    # versions, logins, links, drift', 'bin/harness diff      # what changed since the last sync', 'bin/harness uninstall # put everything back'].join('\n');
+
+const headings = [
+  { depth: 2, slug: 'install', text: 'Install' },
+  { depth: 2, slug: 'existing', text: 'Link an existing setup' },
+  { depth: 2, slug: 'configure', text: 'Configure' },
+  { depth: 2, slug: 'check', text: 'Check and undo' },
+];
+---
+
+<DocsLayout
+  title="Install and configure"
+  description="Clone the harness, run one command, edit one JSON file. The CLI is Python 3.9 standard library and every step is idempotent."
+  crumbs={[{ label: 'install' }]}
+  sourcePath="README.md"
+  sourceLabel="View README on GitHub"
+  headings={headings}
+  kind="Page"
+>
+  <div class="eyebrow"><span class="pill amber">Start here</span></div>
+  <h1>Install and configure</h1>
+  <p class="lede">Clone, run one command, edit one JSON file. An agent can do all of it from the README; every step is idempotent and reversible.</p>
+
+  <div class="harness-prose">
+    <h2 id="install">Install</h2>
+    <p>On a fresh machine, <code>install</code> brings in the tools and then links the harness in:</p>
+    <SourceBlock code={clone} lang="sh" label="Fresh machine" />
+
+    <h2 id="existing">Link an existing setup</h2>
+    <p>If Claude Code, Codex and VS Code are already installed, skip straight to the sync. Files that were already in <code>~/.claude</code> are moved aside, recorded, and put back by <code>uninstall</code>.</p>
+    <SourceBlock code={adopt} lang="sh" label="Tools already installed" />
+
+    <h2 id="configure">Configure</h2>
+    <p>
+      Copy <code>config.example.json</code> to <code>~/.config/agent-harness/config.json</code>, put your name and stances in it, and run <code>bin/harness sync</code> again.
+      Nothing personal ever lands in the checkout: the identity block is rendered into an untracked <code>CLAUDE.personal.md</code>, and each stance key picks one variant to link.
+    </p>
+    <SourceBlock code={config} lang="json" label="config.example.json" />
+    <p>Each key under <code>stances</code> is a dimension; the value names the variant that loads on every turn.</p>
+    <ul>
+      {r.stances.map((d) => (
+        <li>
+          <a href={d.route}><code>{d.id}</code></a>: {d.variants.map((v) => v.variant).join(' · ')}
+          {d.defaultVariant && <span class="muted small"> — default <code>{d.defaultVariant}</code></span>}
+        </li>
+      ))}
+    </ul>
+    <p>Override any of them for one session with an environment variable: <code>HARNESS_STANCE_TESTING=pragmatic</code>, <code>HARNESS_IDENTITY_NAME=…</code>, <code>HARNESS_PERMISSIONS=…</code>.</p>
+
+    <h2 id="check">Check and undo</h2>
+    <SourceBlock code={after} lang="sh" label="After the sync" />
+    <p>In a session, <code>/context</code> lists the harness rules and the selected stances; <code>/hooks</code> lists the hooks. The <a href="/docs/sync-model/">sync model</a> and <a href="/docs/settings-ownership/">settings ownership</a> pages say exactly what the sync touches and what it never will.</p>
+  </div>
+</DocsLayout>

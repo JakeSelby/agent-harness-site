@@ -1,0 +1,14 @@
+---
+import type { Entry } from '../lib/harness/registry.ts';
+
+interface Props { entry: Entry; tag?: string; tagTone?: 'amber' }
+const { entry, tag, tagTone } = Astro.props;
+---
+
+<a class="card" href={entry.route}>
+  <span class:list={['name', { sans: entry.kind === 'docs' }]}>
+    {entry.label}
+    {tag && <span class:list={['pill', { amber: tagTone === 'amber' }]}>{tag}</span>}
+  </span>
+  {entry.summary && <span class="desc">{entry.summary}</span>}
+</a>

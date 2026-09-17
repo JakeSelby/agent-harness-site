@@ -1,0 +1,235 @@
+---
+import { getEntry, render } from 'astro:content';
+import DocsLayout from '../layouts/DocsLayout.astro';
+import MetaStrip from '../components/MetaStrip.astro';
+import EntryCard from '../components/EntryCard.astro';
+import SourceBlock from '../components/SourceBlock.astro';
+import {
+  KIND_BLURB,
+  KIND_LABEL,
+  KIND_SINGULAR,
+  entriesOf,
+  flatten,
+  getRegistry,
+  neighbours,
+  type Dimension,
+  type Entry,
+  type Kind,
+} from '../lib/harness/registry.ts';
+
+type Props =
+  | { type: 'kind'; kind: Kind }
+  | { type: 'dimension'; dimension: Dimension }
+  | { type: 'entry'; entry: Entry };
+
+export function getStaticPaths() {
+  const r = getRegistry();
+  const kinds: Kind[] = ['rules', 'stances', 'skills', 'agents', 'commands', 'hooks', 'output-styles', 'docs'];
+  return [
+    ...kinds.map((kind) => ({ params: { slug: kind }, props: { type: 'kind', kind } as Props })),
+    ...r.stances.map((dimension) => ({ params: { slug: `stances/${dimension.id}` }, props: { type: 'dimension', dimension } as Props })),
+    ...flatten().map((entry) => ({ params: { slug: entry.route.slice(1, -1) }, props: { type: 'entry', entry } as Props })),
+  ];
+}
+
+const props = Astro.props as Props;
+const r = getRegistry();
+
+// Astro's collection names are fixed strings; the registry carries them as data.
+type CollectionName = 'rules' | 'stances' | 'skills' | 'agents' | 'commands' | 'outputStyles' | 'docs' | 'meta';
+async function rendered(entry: Entry) {
+  if (!entry.collection || !entry.collectionId) return null;
+  const ce = await getEntry(entry.collection as CollectionName, entry.collectionId);
+  if (!ce) throw new Error(`No collection entry for ${entry.collection}/${entry.collectionId} (${entry.sourcePath})`);
+  return render(ce);
+}
+
+const kindOf = (e: Entry) => KIND_SINGULAR[e.kind];
+// Docstrings are plain text with backtick spans; escape, then honour the backticks.
+const inlineCode = (text: string) =>
+  text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+const kindPill = (e: Entry): string | null => {
+  switch (e.kind) {
+    case 'rules': return 'loaded every turn';
+    case 'skills': return 'loaded on invocation';
+    case 'stances': return 'one variant loads every turn';
+    case 'agents': return e.frontmatter.model ? `model: ${e.frontmatter.model}` : null;
+    case 'hooks': return e.hook?.event ?? null;
+    case 'commands': return 'slash command';
+    default: return null;
+  }
+};
+---
+
+{props.type === 'kind' && (() => {
+  const kind = props.kind;
+  const entries = entriesOf(kind);
+  return (
+    <DocsLayout title={KIND_LABEL[kind]} description={KIND_BLURB[kind]} crumbs={[{ label: kind, mono: true }]} sourcePath={kind === 'docs' ? 'docs' : `claude/${kind}`} sourceLabel="View folder on GitHub" kind="Index">
+      <div class="eyebrow"><span class="pill amber">{KIND_LABEL[kind]}</span><span class="pill num">{entries.length}</span></div>
+      <h1>{KIND_LABEL[kind]}</h1>
+      <p class="lede">{KIND_BLURB[kind]}</p>
+      {kind === 'stances' ? (
+        r.stances.map((d) => (
+          <div class="card-group">
+            <h2><a href={d.route}>{d.title}</a> <span class="count">{d.variants.length} variants · default {d.defaultVariant}</span></h2>
+            <div class="cards">
+              {d.variants.map((v) => <EntryCard entry={v} tag={v.isDefault ? 'default' : undefined} tagTone={v.isDefault ? 'amber' : undefined} />)}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div class="cards">
+          {entries.map((e) => (
+            <EntryCard entry={e} tag={kind === 'agents' ? e.frontmatter.model : kind === 'hooks' ? e.hook?.event : undefined} />
+          ))}
+        </div>
+      )}
+    </DocsLayout>
+  );
+})()}
+
+{props.type === 'dimension' && (async () => {
+  const d = props.dimension;
+  const panels = await Promise.all(d.variants.map(async (v) => ({ v, r: await rendered(v) })));
+  const initial = d.defaultVariant ?? d.variants[0]?.variant;
+  const others = r.stances.filter((x) => x.id !== d.id);
+  return (
+    <DocsLayout
+      title={`${d.title} stance`}
+      description={`The ${d.id} stance: ${d.variants.map((v) => v.variant).join(', ')}. One variant is linked into every session; the default is ${d.defaultVariant}.`}
+      crumbs={[{ label: 'stances', href: '/stances/', mono: true }, { label: d.id, mono: true }]}
+      sourcePath={d.sourcePath}
+      sourceLabel="View folder on GitHub"
+      kind="Stance"
+    >
+      <div class="eyebrow"><span class="pill amber">Stance</span><span class="pill">one variant loads every turn</span></div>
+      <h1>{d.title}</h1>
+      <p class="lede">
+        A preference a reasonable engineer might hold the other way, so it is a switch, not a rule. Set <code>stances.{d.id}</code> in
+        <code>config.json</code>, or override one session with <code>HARNESS_STANCE_{d.id.toUpperCase().replace(/-/g, '_')}</code>.
+      </p>
+      <MetaStrip
+        fields={[
+          { label: 'Dimension', value: d.id, mono: true },
+          { label: 'Variants', value: String(d.variants.length) },
+          ...(d.defaultVariant ? [{ label: 'Default', value: d.defaultVariant, mono: true, tone: 'amber' as const }] : []),
+          { label: 'Linked as', value: `~/.claude/rules/harness-stances/${d.id}.md`, mono: true },
+          { label: 'Path', value: `claude/stances/${d.id}/`, mono: true },
+        ]}
+      />
+      <div class="tabs" role="tablist" aria-label="Variants" id="variant-tabs">
+        {d.variants.map((v) => (
+          <button type="button" role="tab" id={`tab-${v.variant}`} aria-selected={v.variant === initial ? 'true' : 'false'} aria-controls={`panel-${v.variant}`} data-variant={v.variant}>
+            {v.variant}
+            {v.isDefault && <span class="pill amber">default</span>}
+          </button>
+        ))}
+      </div>
+      <div data-pagefind-ignore>
+        {panels.map(({ v, r: body }) => (
+          <div class="panel harness-prose" id={`panel-${v.variant}`} role="tabpanel" aria-labelledby={`tab-${v.variant}`} hidden={v.variant !== initial}>
+            <h2 style="margin-top:0.5rem;padding-top:0"><a href={v.route}>{v.title}</a></h2>
+            {body && <body.Content />}
+            {v.variant === 'off' && <p class="muted small">An <code>off</code> variant still links a one-line file, so <code>/context</code> shows the stance is set and silent rather than missing.</p>}
+          </div>
+        ))}
+      </div>
+      <div class="variant-grid">
+        {d.variants.map((v) => (
+          <a href={v.route}><b>{v.variant}{v.isDefault && <span class="pill amber">default</span>}</b>{v.summary}</a>
+        ))}
+      </div>
+      <p class="ritual-note">
+        Other dimensions: {others.map((o, i) => <><a href={o.route}><code>{o.id}</code></a>{i < others.length - 1 ? ' · ' : ''}</>)}
+      </p>
+      <script>
+        const tabs = document.querySelectorAll<HTMLButtonElement>('#variant-tabs [role="tab"]');
+        const select = (variant: string) => {
+          tabs.forEach((t) => {
+            const on = t.dataset.variant === variant;
+            t.setAttribute('aria-selected', String(on));
+            const panel = document.getElementById(`panel-${t.dataset.variant}`);
+            if (panel) panel.hidden = !on;
+          });
+        };
+        tabs.forEach((t) => t.addEventListener('click', () => select(t.dataset.variant!)));
+        tabs.forEach((t, i) =>
+          t.addEventListener('keydown', (e) => {
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+            const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+            next.focus();
+            select(next.dataset.variant!);
+          }),
+        );
+        const fromHash = location.hash.replace('#', '');
+        if (fromHash && Array.from(tabs).some((t) => t.dataset.variant === fromHash)) select(fromHash);
+      </script>
+    </DocsLayout>
+  );
+})()}
+
+{props.type === 'entry' && (async () => {
+  const e = props.entry;
+  const body = await rendered(e);
+  const { prev, next } = neighbours(e.route);
+  const dim = e.kind === 'stances' ? r.stances.find((d) => d.id === e.dimension) : null;
+  const crumbs = [
+    { label: e.kind, href: `/${e.kind}/`, mono: true },
+    ...(dim ? [{ label: dim.id, href: dim.route, mono: true }] : []),
+    { label: e.kind === 'stances' ? e.variant! : e.label, mono: true },
+  ];
+  const lede = e.kind === 'skills' || e.kind === 'agents' || e.kind === 'commands' || e.kind === 'output-styles' ? e.frontmatter.description ?? e.summary : e.kind === 'hooks' ? e.hook?.summary : null;
+  const title = body?.remarkPluginFrontmatter?.title as string | undefined;
+  const pill = kindPill(e);
+  return (
+    <DocsLayout
+      title={e.kind === 'stances' ? e.title : `${e.label} · ${kindOf(e)}`}
+      description={(lede ?? e.summary ?? e.title).slice(0, 300)}
+      crumbs={crumbs}
+      sourcePath={e.sourcePath}
+      headings={body?.headings ?? (e.hook ? [{ depth: 2, slug: 'what-it-does', text: 'What it does' }, { depth: 2, slug: 'when-it-runs', text: 'When it runs' }, { depth: 2, slug: 'source', text: 'The script' }] : [])}
+      prev={prev}
+      next={next}
+      kind={kindOf(e)}
+    >
+      <div class="eyebrow"><span class="pill amber">{kindOf(e)}</span>{pill && <span class="pill">{pill}</span>}</div>
+      <h1>{e.kind === 'docs' || e.kind === 'rules' || e.kind === 'stances' ? (title ?? e.title) : e.title}</h1>
+      {lede && <p class="lede">{lede}</p>}
+      <MetaStrip fields={e.meta} />
+      {dim && (
+        <div class="tabs" aria-label="Variants">
+          {dim.variants.map((v) => (
+            <a href={v.route} aria-current={v.route === e.route ? 'page' : undefined}>
+              {v.variant}
+              {v.isDefault && <span class="pill amber">default</span>}
+            </a>
+          ))}
+        </div>
+      )}
+      {body && (
+        <div class="harness-prose">
+          <body.Content />
+        </div>
+      )}
+      {e.hook && (
+        <div class="harness-prose">
+          <h2 id="what-it-does">What it does</h2>
+          {e.hook.docstring.split(/\n\s*\n/).slice(1).map((p) => <p set:html={inlineCode(p.replace(/\s+/g, ' '))} />)}
+          <h2 id="when-it-runs">When it runs</h2>
+          <p>
+            Claude Code fires it on <code>{e.hook.event}</code>{e.hook.matcher && <> when the tool matches <code>{e.hook.matcher}</code></>}
+            {e.hook.timeout && <>, with a {e.hook.timeout}-second timeout</>}. It is registered
+            {e.hook.always ? ' in every install' : <> only when the <a href={`/stances/${e.hook.stance}/${e.hook.variant}/`}><code>{e.hook.stance}</code> stance is <code>{e.hook.variant}</code></a></>};
+            the entry lives in <code>settings.template.json</code> and <code>harness sync</code> merges it into your <code>settings.json</code> under the id <code>harness:{e.id}</code>.
+          </p>
+          {e.hook.helper && <p>It shares <code>{e.hook.helper}</code> with the filter that runs in the same event; that file is a helper, not a hook.</p>}
+          <h2 id="source">The script</h2>
+          <SourceBlock code={e.hook.source} lang="python" label={e.hook.file} />
+        </div>
+      )}
+    </DocsLayout>
+  );
+})()}

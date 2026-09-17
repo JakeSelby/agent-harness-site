@@ -1,0 +1,32 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+import MetaStrip from '../components/MetaStrip.astro';
+import { listCli } from '../lib/harness/cli.ts';
+
+const cli = listCli();
+const headings = cli.map((c) => ({ depth: 2, slug: c.name, text: `harness ${c.name}` }));
+---
+
+<DocsLayout
+  title="The CLI"
+  description={`bin/harness: ${cli.length} subcommands that install, link, lint and report on the harness. Python 3.9 standard library, no dependencies.`}
+  crumbs={[{ label: 'cli' }]}
+  sourcePath="bin/harness"
+  headings={headings}
+  tocLabel="Subcommands"
+  kind="Page"
+>
+  <div class="eyebrow"><span class="pill amber">CLI</span><span class="pill">Python 3.9 stdlib</span></div>
+  <h1>The CLI</h1>
+  <p class="lede">One script, <code>bin/harness</code>, with {cli.length} subcommands. No dependencies, no build, and every subcommand is safe to run twice.</p>
+  <MetaStrip fields={[{ label: 'Path', value: 'bin/harness', mono: true }, { label: 'Subcommands', value: String(cli.length) }, { label: 'Runtime', value: 'python3 ≥ 3.9' }]} />
+  <div class="harness-prose">
+    {cli.map((c) => (
+      <section>
+        <h2 id={c.name}><code>harness {c.name}</code></h2>
+        <p>{c.help.replace(/^\w/, (ch) => ch.toUpperCase())}.</p>
+      </section>
+    ))}
+    <p class="muted small">Read straight from the argparse definitions in <code>bin/harness</code>; run <code>bin/harness &lt;subcommand&gt; --help</code> for the flags.</p>
+  </div>
+</DocsLayout>
