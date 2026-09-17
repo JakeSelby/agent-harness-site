@@ -22,6 +22,9 @@ concurrency:
 jobs:
   deploy:
     name: build and sync
+    # Until the stack exists and its DeployRoleArn output is stored as the
+    # AWS_DEPLOY_ROLE_ARN repository variable, there is nothing to sync to.
+    if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
     runs-on: ubuntu-latest
     env:
       AWS_REGION: us-east-1
