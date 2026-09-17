@@ -50,14 +50,14 @@ describe('the registry', () => {
   const r = getRegistry();
   const c = getCounts();
 
-  it('counts what the README claims for v0.4.1', () => {
+  it('counts what the README claims for v0.5.1', () => {
     expect(c.rules).toBe(10);
     expect(c.stanceDimensions).toBe(8);
     expect(c.stanceVariants).toBe(23);
     expect(c.skills).toBe(13);
     expect(c.agents).toBe(7);
     expect(c.commands).toBe(5);
-    expect(c.hooks).toBe(8);
+    expect(c.hooks).toBe(9);
     expect(c.outputStyles).toBe(1);
     expect(c.docs).toBe(10);
   });
@@ -138,9 +138,9 @@ describe('the registry', () => {
 
 describe('hooks', () => {
   const hooks = listHooks();
-  it('joins settings, ownership and docstrings into the eight hooks v0.4.1 registers', () => {
-    expect(hooks).toHaveLength(8);
-    expect(hooks.map((h) => h.id).sort()).toEqual(['filter-output', 'neutralize', 'plan-card', 'plan-webfetch', 'readonly-bash', 'session', 'stop-gate', 'usage-log']);
+  it('joins settings, ownership and docstrings into the 9 hooks v0.5.1 registers', () => {
+    expect(hooks).toHaveLength(9);
+    expect(hooks.map((h) => h.id).sort()).toEqual(['filter-output', 'neutralize', 'plan-card', 'plan-webfetch', 'readonly-bash', 'session', 'stop-gate', 'tier-spawns', 'usage-log']);
   });
   it('knows which hook a stance gates', () => {
     const card = hooks.find((h) => h.id === 'plan-card')!;
@@ -149,7 +149,7 @@ describe('hooks', () => {
     expect(card.variant).toBe('review-card');
     expect(card.event).toBe('PostToolUse');
     expect(card.matcher).toBe('Write|Edit');
-    expect(hooks.filter((h) => h.always)).toHaveLength(7);
+    expect(hooks.filter((h) => h.always)).toHaveLength(8);
   });
   it('carries the docstring and the helper', () => {
     const gate = hooks.find((h) => h.id === 'stop-gate')!;
@@ -162,7 +162,7 @@ describe('hooks', () => {
 describe('the CLI and the honesty strip', () => {
   it('finds every subcommand in bin/harness', () => {
     const names = listCli().map((c) => c.name);
-    expect(names).toEqual(['install', 'sync', 'diff', 'doctor', 'uninstall', 'lint', 'usage', 'trust', 'workspace', 'config']);
+    expect(names).toEqual(['install', 'sync', 'diff', 'doctor', 'uninstall', 'lint', 'usage', 'trust', 'workspace', 'config', 'bmad']);
     expect(listCli().every((c) => c.help.length > 0)).toBe(true);
   });
   it('reads the always-loaded cap and counts the tests', () => {
