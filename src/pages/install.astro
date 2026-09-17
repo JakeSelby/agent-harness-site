@@ -11,7 +11,8 @@ const config = fs.readFileSync(vendorFile('config.example.json'), 'utf8').trim()
 const clone = [
   'git clone https://github.com/JakeSelby/agent-harness.git ~/repos/agent-harness',
   'cd ~/repos/agent-harness',
-  'bin/harness install   # Homebrew packages, VS Code + extensions, Claude Code, Codex, gh, then sync',
+  'bin/harness install',
+  '# Homebrew packages, VS Code + extensions, Claude Code, Codex, gh, then sync',
 ].join('\n');
 const adopt = 'bin/harness sync --adopt   # --adopt moves any pre-existing ~/.claude files aside (recorded, reversible)';
 const after = ['bin/harness doctor    # versions, logins, links, drift', 'bin/harness diff      # what changed since the last sync', 'bin/harness uninstall # put everything back'].join('\n');

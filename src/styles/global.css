@@ -13,13 +13,15 @@
   --fg-dim: #A1A1AA;
   --amber: #D97706;
   --amber-text: #B45309;
-  --amber-soft: rgba(217, 119, 6, 0.10);
+  --amber-soft: rgba(217, 119, 6, 0.06);
   --amber-line: rgba(217, 119, 6, 0.35);
   --code-bg: #0D1117;
   --code-border: #1F2937;
   --code-fg: #E6EDF3;
   --code-dim: #8B949E;
   --fg-hover: #2A2A2E;
+  --bg-glass: rgba(250, 250, 249, 0.92);
+  --scrim: rgba(24, 24, 27, 0.35);
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Fira Code', ui-monospace, monospace;
@@ -62,7 +64,7 @@ p { margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 
 /* ── Top bar ── */
-.topbar { position: sticky; top: 0; z-index: 40; height: var(--nav-h); background: rgba(250, 250, 249, 0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+.topbar { position: sticky; top: 0; z-index: 40; height: var(--nav-h); background: var(--bg-glass); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
 .topbar-inner { max-width: 88rem; margin: 0 auto; height: 100%; padding: 0 1.5rem; display: flex; align-items: center; gap: 1rem; }
 .wordmark { display: flex; align-items: baseline; gap: 0.6rem; font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; white-space: nowrap; }
 .wordmark .by { font-family: var(--font-body); font-weight: 400; font-size: 0.8rem; color: var(--fg-2); }
@@ -112,7 +114,7 @@ kbd.key { font-size: 0.7rem; padding: 0.05rem 0.35rem; border: 1px solid var(--b
 .source-link svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .view { max-width: var(--measure); }
 .view.wide { max-width: none; }
-.view.wide .hero, .view.wide #the-cli, .view.wide #honest, .view.wide .lede, .view.wide .panel { max-width: 76ch; }
+.view.wide .hero, .view.wide #the-cli, .view.wide #honest, .view.wide .lede, .view.wide .panel, .view.wide .meta, .view.wide .tabs, .view.wide .ritual-note { max-width: 76ch; }
 .eyebrow { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
 .lede { font-size: 1.1rem; color: var(--fg-2); max-width: 60ch; margin-top: 0.9rem; }
 .lede code { font-size: 0.85em; }
@@ -196,10 +198,11 @@ pre.astro-code .code-copy { position: absolute; top: 0.5rem; right: 0.5rem; }
 .pillars .k { font-family: var(--font-mono); font-size: 0.7rem; color: var(--amber-text); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 0.4rem; }
 
 .ladder { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); overflow: hidden; font-size: 0.8rem; }
-.ladder li { display: grid; grid-template-columns: minmax(0, 1.45fr) 1.6rem minmax(0, 1.25fr) minmax(0, 1fr); gap: 0.75rem; align-items: center; padding: 0.55rem 0.9rem; border-top: 1px solid var(--border-subtle); }
+.ladder li { border-top: 1px solid var(--border-subtle); }
+.ladder li a { display: grid; grid-template-columns: minmax(0, 1.45fr) 1.6rem minmax(0, 1.25fr) minmax(0, 1fr); gap: 0.75rem; align-items: center; padding: 0.55rem 0.9rem; }
+.ladder li a:focus-visible { outline-offset: -2px; border-radius: 0; }
 .ladder li:first-child { border-top: 0; }
-.ladder li a { display: contents; }
-.ladder li:hover { background: var(--surface); }
+.ladder li a:hover { background: var(--surface); color: inherit; }
 .ladder .l, .ladder .r { font-family: var(--font-mono); overflow-wrap: anywhere; }
 .ladder .l { color: var(--fg-2); }
 .ladder .r { color: var(--fg); }
@@ -258,7 +261,7 @@ pre.astro-code .code-copy { position: absolute; top: 0.5rem; right: 0.5rem; }
 
 /* ── Search palette ── */
 dialog.palette { border: 1px solid var(--border); border-radius: 10px; padding: 0; width: min(640px, calc(100vw - 2rem)); background: var(--raised); color: var(--fg); box-shadow: 0 24px 64px -12px rgb(0 0 0 / 0.25); margin-top: 12vh; }
-dialog.palette::backdrop { background: rgb(24 24 27 / 0.35); backdrop-filter: blur(2px); }
+dialog.palette::backdrop { background: var(--scrim); backdrop-filter: blur(2px); }
 .pal-in { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); }
 .pal-in input { flex: 1; font: inherit; font-size: 1rem; border: 0; outline: 0; background: transparent; color: var(--fg); min-width: 0; }
 .pal-in svg { width: 18px; height: 18px; stroke: var(--fg-dim); stroke-width: 2; fill: none; flex: none; }
@@ -286,7 +289,7 @@ dialog.palette::backdrop { background: rgb(24 24 27 / 0.35); backdrop-filter: bl
   .frame, .frame.no-toc { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .sidebar { position: fixed; top: var(--nav-h); left: 0; bottom: 0; width: min(320px, 85vw); max-height: none; background: var(--bg); border-right: 1px solid var(--border); padding: 1rem 0.75rem 2rem 1rem; transform: translateX(-100%); transition: transform var(--t-base); z-index: 45; }
   .sidebar.open { transform: none; }
-  .scrim { display: block; position: fixed; inset: var(--nav-h) 0 0 0; background: rgb(24 24 27 / 0.35); z-index: 44; opacity: 0; pointer-events: none; transition: opacity var(--t-base); }
+  .scrim { display: block; position: fixed; inset: var(--nav-h) 0 0 0; background: var(--scrim); z-index: 44; opacity: 0; pointer-events: none; transition: opacity var(--t-base); }
   .scrim.on { opacity: 1; pointer-events: auto; }
   .menu-btn { display: inline-flex; }
   .search-btn { min-width: 0; }
@@ -295,7 +298,7 @@ dialog.palette::backdrop { background: rgb(24 24 27 / 0.35); backdrop-filter: bl
   h1 { font-size: 2rem; }
   .pillars, .honest { grid-template-columns: 1fr; }
   .counts { grid-template-columns: repeat(2, 1fr); }
-  .ladder li { grid-template-columns: minmax(0, 1fr) 1.4rem minmax(0, 1fr); }
+  .ladder li a { grid-template-columns: minmax(0, 1fr) 1.4rem minmax(0, 1fr); }
   .ladder .why { display: none; }
   .cli { grid-template-columns: 1fr; gap: 0.1rem; }
   .cli dd { margin-bottom: 0.5rem; }
