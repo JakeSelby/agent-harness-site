@@ -38,7 +38,17 @@ named by the harness's own `VERSION` file.
 
 CI (`.github/workflows/deploy.yml`) syncs the site on every push to `main` through an OIDC
 role that can only write the bucket and invalidate the distribution. Infrastructure changes
-and the first deploy are `./scripts/deploy.sh` from a Mac with the `your-profile` profile.
+and the first deploy are `./scripts/deploy.sh` from a Mac with an AWS credential profile.
+
+Copy `.env.infra.example` to `.env.infra` and set the existing account, hosted zone,
+bucket, routing function, and deploy-role values. The file is ignored; never commit it.
+Use `AWS_PROFILE` or the normal AWS credential chain for authentication, not keys in source.
+The CDK app also accepts these settings from the environment. Deployment rejects an
+unexpected credential account or stack outputs before syncing files.
+
+Run `npm --prefix infra ci`, `npm --prefix infra test`, and `npm --prefix infra run build`
+to validate infrastructure changes without deploying. Synthesis requires deployment config;
+tests use synthetic identifiers. Keep existing resource names when configuring an existing stack.
 
 ## Licence
 

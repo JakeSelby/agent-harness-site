@@ -38,6 +38,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm --prefix infra ci
+      - run: npm --prefix infra test
+      - run: npm --prefix infra run build
       - run: npm test
       - run: npm run build
       - run: node scripts/smoke.mjs
