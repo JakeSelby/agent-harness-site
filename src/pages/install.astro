@@ -14,7 +14,7 @@ const clone = [
   'bin/harness install',
   '# Homebrew packages, VS Code + extensions, Claude Code, Codex, gh, then sync',
 ].join('\n');
-const adopt = 'bin/harness sync --adopt   # --adopt moves any pre-existing ~/.claude files aside (recorded, reversible)';
+const adopt = 'bin/harness sync --dry-run\nbin/harness sync';
 const after = ['bin/harness doctor    # versions, logins, links, drift', 'bin/harness diff      # what changed since the last sync', 'bin/harness uninstall # put everything back'].join('\n');
 
 const headings = [
@@ -27,7 +27,7 @@ const headings = [
 
 <DocsLayout
   title="Install and configure"
-  description="Clone the harness, run one command, edit one JSON file. The CLI is Python 3.9 standard library and every step is idempotent."
+  description="Clone the harness, run one command, edit one JSON file. Choose runtime targets, inspect your stance selections, and review configuration ownership before syncing."
   crumbs={[{ label: 'install' }]}
   sourcePath="README.md"
   sourceLabel="View README on GitHub"
@@ -36,21 +36,22 @@ const headings = [
 >
   <div class="eyebrow"><span class="pill amber">Start here</span></div>
   <h1>Install and configure</h1>
-  <p class="lede">Clone, run one command, edit one JSON file. An agent can do all of it from the README; every step is idempotent and reversible.</p>
+  <p class="lede">Clone, run one command, edit one JSON file. An agent can do all of it from the README; inspect support and configuration ownership before syncing.</p>
 
+  <p>Claude Code and Codex are integration targets. Check the <a href="/compatibility/">versioned compatibility catalog</a>; Cursor and Grok are planned.</p>
   <div class="harness-prose">
     <h2 id="install">Install</h2>
     <p>On a fresh machine, <code>install</code> brings in the tools and then links the harness in:</p>
     <SourceBlock code={clone} lang="sh" label="Fresh machine" />
 
     <h2 id="existing">Link an existing setup</h2>
-    <p>If Claude Code, Codex and VS Code are already installed, skip straight to the sync. Files that were already in <code>~/.claude</code> are moved aside, recorded, and put back by <code>uninstall</code>.</p>
+    <p>If Claude Code, Codex and VS Code are already installed, skip straight to the sync. Unmanaged files require explicit adoption; modified owned files produce conflicts and are preserved.</p>
     <SourceBlock code={adopt} lang="sh" label="Tools already installed" />
 
     <h2 id="configure">Configure</h2>
     <p>
       Copy <code>config.example.json</code> to <code>~/.config/agent-harness/config.json</code>, put your name and stances in it, and run <code>bin/harness sync</code> again.
-      Nothing personal ever lands in the checkout: the identity block is rendered into an untracked <code>CLAUDE.personal.md</code>, and each stance key picks one variant to link.
+      Keep personal identity outside the checkout. Each stance key selects one policy projected into the runtimes you enable.
     </p>
     <SourceBlock code={config} lang="json" label="config.example.json" />
     <p>Each key under <code>stances</code> is a dimension; the value names the variant that loads on every turn.</p>
@@ -62,7 +63,7 @@ const headings = [
         </li>
       ))}
     </ul>
-    <p>Override any of them for one session with an environment variable: <code>HARNESS_STANCE_TESTING=pragmatic</code>, <code>HARNESS_IDENTITY_NAME=…</code>, <code>HARNESS_PERMISSIONS=…</code>.</p>
+    <p>Session stance choices are explicit and scoped; they never grant native permissions. Inspect effective selections with <code>harness stances --json</code>.</p>
 
     <h2 id="check">Check and undo</h2>
     <SourceBlock code={after} lang="sh" label="After the sync" />

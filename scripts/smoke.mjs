@@ -49,6 +49,9 @@ try {
 } catch {
   /* offline or already present: describe below decides */
 }
+if (manifest.release?.commit !== git('rev-parse HEAD')) fail('manifest source commit differs from the pinned submodule');
+if (manifest.release?.tag !== `v${version}`) fail('manifest tag differs from VERSION');
+
 try {
   const tag = git('describe --tags --exact-match');
   if (tag !== `v${version}`) fail(`submodule is at ${tag}, VERSION says v${version}`);
