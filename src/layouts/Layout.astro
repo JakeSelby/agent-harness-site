@@ -39,6 +39,7 @@ const fullTitle = Astro.url.pathname === '/' ? 'agent-harness — the reference'
     <title>{fullTitle}</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🧰</text></svg>" />
     <slot name="head" />
+    <script is:inline src="/analytics.js" defer></script>
   </head>
   <body>
     <a href="#main" class="skip">Skip to content</a>
