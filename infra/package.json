@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "test": "tsx --test lib/*.test.ts"
   },
   "dependencies": {
     "aws-cdk": "^2.243.0",
@@ -16,5 +17,8 @@
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

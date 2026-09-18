@@ -8,6 +8,10 @@ set -euo pipefail
 
 export AWS_REGION="us-east-1"
 : "${BUCKET:?set BUCKET}" "${DIST_ID:?set DIST_ID}"
+if [[ ! "$BUCKET" =~ ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$ ]] || [[ ! "$DIST_ID" =~ ^E[A-Z0-9]+$ ]]; then
+  echo "✗ Invalid stack outputs; refusing to sync." >&2
+  exit 1
+fi
 [ -f dist/index.html ] || { echo "✗ dist/index.html missing — run 'npm run build' first" >&2; exit 1; }
 
 echo "▶ Syncing site to s3://${BUCKET} ..."

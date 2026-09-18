@@ -23,10 +23,16 @@ npm run check       # astro check
 ## Gate
 
 ```sh
+npm --prefix infra ci
+npm --prefix infra test
+npm --prefix infra run build
 npm test
 npm run build
 node scripts/smoke.mjs
 ```
+
+Expected clean-tree result: all tests and the build pass, the smoke test reports no failures,
+and `git status --porcelain` is empty (generated output and local config are ignored).
 
 ## Rules
 
@@ -57,8 +63,9 @@ node scripts/smoke.mjs
 
 ## Deploying
 
-1. First time only, from a Mac: `cd infra && npx cdk deploy AgentHarnessSite`. ACM validation
-   sits for two or three minutes; that is normal. Copy the `DeployRoleArn` output into the
+1. Configure `.env.infra` as documented in README first. From a Mac:
+   `cd infra && npx cdk deploy AgentHarnessSite`. ACM validation takes a few minutes.
+   Copy the `DeployRoleArn` output into the
    repository variable `AWS_DEPLOY_ROLE_ARN` on GitHub.
 2. Every push to `main` after that: `.github/workflows/deploy.yml` builds, smoke-tests and syncs.
 3. Infrastructure changes and manual syncs: `./scripts/deploy.sh` (guards: clean tree, `main`,

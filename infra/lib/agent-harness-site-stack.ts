@@ -7,6 +7,11 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
+import type { InfraConfig } from './config.js';
+
+export interface AgentHarnessSiteStackProps extends cdk.StackProps {
+  config: InfraConfig;
+}
 
 const DOMAIN = 'agent-harness.jakeselby.com';
 const REPO = 'JakeSelby/agent-harness-site';
@@ -21,15 +26,16 @@ const REPO = 'JakeSelby/agent-harness-site';
  *   - Route53 A alias for the subdomain
  *   - A GitHub Actions deploy role (OIDC) that can only sync the bucket and invalidate
  *
- * Prerequisites: the hosted zone Z123EXAMPLE and the account's GitHub OIDC
- * provider both exist. AWS_PROFILE=your-profile, AWS_REGION=us-east-1.
+ * Prerequisites: the configured hosted zone and the account's GitHub OIDC provider
+ * both exist. See .env.infra.example for deployment configuration.
  */
 export class AgentHarnessSiteStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: AgentHarnessSiteStackProps) {
     super(scope, id, props);
+    const { config } = props;
 
     const hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
-      hostedZoneId: 'Z123EXAMPLE',
+      hostedZoneId: config.hostedZoneId,
       zoneName: 'jakeselby.com',
     });
 
@@ -40,7 +46,7 @@ export class AgentHarnessSiteStack extends cdk.Stack {
 
     // Versioned so a bad `s3 sync --delete` is recoverable; old versions expire after 30 days.
     const bucket = new s3.Bucket(this, 'WebBucket', {
-      bucketName: 'example-harness-web',
+      bucketName: config.bucketName,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       versioned: true,
       lifecycleRules: [{ noncurrentVersionExpiration: cdk.Duration.days(30) }],
@@ -51,7 +57,7 @@ export class AgentHarnessSiteStack extends cdk.Stack {
     // Astro writes skills/plan-authoring/index.html; without this, /skills/plan-authoring/
     // is a missing key and S3 answers 403.
     const routingFunction = new cloudfront.Function(this, 'RoutingFunction', {
-      functionName: 'example-harness-routing',
+      functionName: config.routingFunctionName,
       code: cloudfront.FunctionCode.fromInline(
         `
 function handler(event) {
@@ -124,7 +130,7 @@ function handler(event) {
       `arn:aws:iam::${this.account}:oidc-provider/token.actions.githubusercontent.com`,
     );
     const deployRole = new iam.Role(this, 'DeployRole', {
-      roleName: 'ExampleHarnessDeployRole',
+      roleName: config.deployRoleName,
       description: `GitHub Actions in ${REPO} (main): sync the site, invalidate CloudFront`,
       assumedBy: new iam.WebIdentityPrincipal(githubProvider.openIdConnectProviderArn, {
         StringEquals: { 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com' },
