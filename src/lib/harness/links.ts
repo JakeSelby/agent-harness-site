@@ -14,6 +14,15 @@ export function routeForRepoPath(
   const p = rel.replace(/\\/g, '/').replace(/^\.\//, '');
   if (p.startsWith('../') || p === '..' || p === '') return null;
 
+  const shared = p.replace(/^primitives\/roles(?=\/|$)/, 'claude/agents')
+    .replace(/^primitives\/workflows(?=\/|$)/, 'claude/commands')
+    .replace(/^primitives\/presentation(?=\/|$)/, 'claude/output-styles')
+    .replace(/^primitives\//, 'claude/').replace(/^policy\/hooks(?=\/|$)/, 'claude/hooks');
+  if (shared !== p) {
+    const route = routeForRepoPath(shared, version, () => false, repoUrl);
+    if (route) return route;
+  }
+
   let m: RegExpMatchArray | null;
   if ((m = p.match(/^docs\/([\w.-]+)\.md$/))) return `/docs/${m[1]}/`;
   if ((m = p.match(/^claude\/skills\/([\w-]+)\/SKILL\.md$/))) return `/skills/${m[1]}/`;
