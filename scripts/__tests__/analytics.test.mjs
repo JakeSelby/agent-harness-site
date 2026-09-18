@@ -50,6 +50,7 @@ function browser(host, path = "/") {
   const context = vm.createContext({
     window,
     URL,
+    URLSearchParams,
     document: {
       title: "secret title user@example.com",
       referrer: "https://example.com/secret-referrer?token=private",
@@ -115,7 +116,7 @@ for (const [name, section] of production) {
         b.views()[0][2].page_location,
         "https://" + name + ".jakeselby.com/" + section,
       );
-      assert.equal(b.views()[0][2].page_referrer, "");
+      assert.equal(b.views()[0][2].page_referrer, "https://example.com");
       assert.doesNotMatch(
         JSON.stringify(b.events()),
         /secret|user@example|email=|token=/,
@@ -241,4 +242,37 @@ test("excluded routes emit nothing after initialization and malformed paths are 
     assert.equal(b.views().length, 1);
   }
   assert.doesNotMatch(JSON.stringify(b.events()), /secret|callback|invite/);
+});
+
+test("root token fragments never initialize analytics on any production host", () => {
+  for (const [name] of production) {
+    for (const key of ["code", "access_token", "id_token"]) {
+      const b = browser(
+        name + ".jakeselby.com",
+        "/#" + key + "=secret&state=private",
+      );
+      b.flush();
+      assert.equal(b.scripts.length, 0);
+      assert.equal(b.events().length, 0);
+    }
+  }
+});
+
+test("referrer starts with origin only, then uses the previous sanitized page", () => {
+  const b = browser(
+    "research.jakeselby.com",
+    "/engagements/secret-id?email=private",
+  );
+  b.flush();
+  assert.equal(b.views()[0][2].page_referrer, "https://example.com");
+  b.window.history.pushState({}, "", "/runs/secret-id?token=private");
+  b.flush();
+  assert.equal(
+    b.views()[1][2].page_referrer,
+    "https://research.jakeselby.com/engagements",
+  );
+  assert.doesNotMatch(
+    JSON.stringify(b.events()),
+    /secret-referrer|secret-id|token=|email=|private/,
+  );
 });

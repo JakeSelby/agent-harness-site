@@ -13,7 +13,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
-    "test": "vitest run",
+    "test": "node --test scripts/__tests__/analytics.test.mjs && vitest run",
     "smoke": "node scripts/smoke.mjs",
     "deploy": "./scripts/deploy.sh",
     "infra:synth": "cd infra && npx cdk synth",

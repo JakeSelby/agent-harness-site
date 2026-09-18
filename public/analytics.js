@@ -93,6 +93,7 @@
 
   function page() {
     const url = new URL(window.location.href);
+    const fragment = new URLSearchParams(url.hash.slice(1));
     let path;
     try {
       path = decodeURIComponent(url.pathname).toLowerCase();
@@ -106,7 +107,8 @@
       ) ||
       ["code", "access_token", "id_token", "invitation", "ticket"].some((key) =>
         url.searchParams.has(key),
-      )
+      ) ||
+      ["code", "access_token", "id_token"].some((key) => fragment.has(key))
     )
       return null;
     const section = path.split("/")[1];
@@ -115,7 +117,7 @@
     return {
       page_location: "https://" + host + route,
       page_title: site[0],
-      page_referrer: "",
+      page_referrer: referrer,
     };
   }
 
