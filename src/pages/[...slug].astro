@@ -214,7 +214,7 @@ const kindPill = (e: Entry): string | null => {
           ))}
           <h2 id="when-it-runs">When it runs</h2>
           <p>
-            Claude Code fires it on <code>{e.hook.event}</code>{e.hook.matcher && <> when the tool matches <code>{e.hook.matcher}</code></>}
+            The policy is associated with <code>{e.hook.event}</code>{e.hook.matcher && <> when the tool matches <code>{e.hook.matcher}</code></>}
             {e.hook.timeout && <>, with a {e.hook.timeout}-second timeout</>}. It is registered
             {e.hook.always ? ' in every install' : <> only when the <a href={`/stances/${e.hook.stance}/${e.hook.variant}/`}><code>{e.hook.stance}</code> stance is <code>{e.hook.variant}</code></a></>};
             the entry lives in <code>settings.template.json</code> and <code>harness sync</code> merges it into your <code>settings.json</code> under the id <code>harness:{e.id}</code>.

@@ -16,7 +16,7 @@ const headings = cli.map((c) => ({ depth: 2, slug: c.name, text: `harness ${c.na
   tocLabel="Subcommands"
   kind="Page"
 >
-  <div class="eyebrow"><span class="pill amber">CLI</span><span class="pill">Python 3.9 stdlib</span></div>
+  <div class="eyebrow"><span class="pill amber">CLI</span><span class="pill">Python 3.9+</span></div>
   <h1>The CLI</h1>
   <p class="lede">One script, <code>bin/harness</code>, with {cli.length} subcommands. No dependencies, no build, and every subcommand is safe to run twice.</p>
   <MetaStrip fields={[{ label: 'Path', value: 'bin/harness', mono: true }, { label: 'Subcommands', value: String(cli.length) }, { label: 'Runtime', value: 'python3 ≥ 3.9' }]} />

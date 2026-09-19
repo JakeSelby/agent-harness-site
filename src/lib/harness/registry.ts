@@ -1,6 +1,7 @@
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { REPO_URL, VENDOR } from './paths.ts';
+import { REPO_URL, VENDOR, sourceDir, compatibility } from './paths.ts';
 import { listHooks, type Hook } from './hooks.ts';
 
 export type Kind = 'rules' | 'stances' | 'skills' | 'agents' | 'commands' | 'hooks' | 'output-styles' | 'docs';
@@ -49,8 +50,8 @@ export const KIND_LABEL: Record<Kind, string> = {
   rules: 'Rules',
   stances: 'Stances',
   skills: 'Skills',
-  agents: 'Agents',
-  commands: 'Commands',
+  agents: 'Roles',
+  commands: 'Workflows',
   hooks: 'Hooks',
   'output-styles': 'Output style',
   docs: 'Docs',
@@ -71,9 +72,9 @@ export const KIND_BLURB: Record<Kind, string> = {
   rules: 'Short, operative, and loaded on every turn. Each rule carries its lines and a pointer to the skill holding the reasoning.',
   stances: 'Preferences a reasonable engineer might hold the other way. One variant per dimension is linked into every session.',
   skills: 'Procedures loaded on invocation. They carry the reasoning and the examples the rules point at.',
-  agents: 'Subagent definitions with their model, effort and tool list, so delegation tiers hold without a retyped brief.',
+  agents: 'Shared responsibility and authority contracts. Runtime adapters bind native models, effort and tools.',
   commands: 'The ritual in five keystrokes: research, plan, build, review, hand off.',
-  hooks: 'Enforced, not advised. Python scripts Claude Code runs at lifecycle points, with no judgment involved.',
+  hooks: 'Shared policy checks composed by runtime lifecycle adapters. Native activation and enforcement are qualified separately.',
   'output-styles': 'The shape of every reply.',
   docs: 'The longer explanations: how the layers compose, what the sync touches, what the harness leaves out.',
 };
@@ -184,9 +185,9 @@ function stanceDefaults(): Record<string, string> {
 }
 
 function rules(): Entry[] {
-  return listDir('claude/rules', (f) => f.endsWith('.md')).map((f) => {
+  return listDir(sourceDir('rules'), (f) => f.endsWith('.md')).map((f) => {
     const id = f.replace(/\.md$/, '');
-    const text = read(`claude/rules/${f}`);
+    const text = read(`${sourceDir('rules')}/${f}`);
     const { body } = parseFrontmatter(text);
     return {
       kind: 'rules',
@@ -195,12 +196,12 @@ function rules(): Entry[] {
       title: firstH1(body) ?? id,
       summary: firstParagraph(body.replace(/^#.*$/m, '')),
       route: `/rules/${id}/`,
-      sourcePath: `claude/rules/${f}`,
+      sourcePath: `${sourceDir('rules')}/${f}`,
       collection: 'rules',
       collectionId: id,
       lines: lineCount(text),
       meta: [
-        { label: 'Path', value: `claude/rules/${f}`, mono: true },
+        { label: 'Path', value: `${sourceDir('rules')}/${f}`, mono: true },
         { label: 'Loaded', value: 'every turn', tone: 'amber' },
         { label: 'Lines', value: String(lineCount(text)) },
       ],
@@ -211,11 +212,11 @@ function rules(): Entry[] {
 
 function stances(): Dimension[] {
   const defaults = stanceDefaults();
-  return listDir('claude/stances', (d) => fs.statSync(path.join(VENDOR, 'claude/stances', d)).isDirectory()).map((dim) => {
+  return listDir(sourceDir('stances'), (d) => fs.statSync(path.join(VENDOR, sourceDir('stances'), d)).isDirectory()).map((dim) => {
     const defaultVariant = defaults[dim] ?? null;
-    const variants: Entry[] = listDir(`claude/stances/${dim}`, (f) => f.endsWith('.md')).map((f) => {
+    const variants: Entry[] = listDir(`${sourceDir('stances')}/${dim}`, (f) => f.endsWith('.md')).map((f) => {
       const variant = f.replace(/\.md$/, '');
-      const text = read(`claude/stances/${dim}/${f}`);
+      const text = read(`${sourceDir('stances')}/${dim}/${f}`);
       const { body } = parseFrontmatter(text);
       const isDefault = variant === defaultVariant;
       return {
@@ -225,7 +226,7 @@ function stances(): Dimension[] {
         title: firstH1(body) ?? `${titleFromDimension(dim)} stance: ${variant}`,
         summary: firstParagraph(body.replace(/^#.*$/m, '')),
         route: `/stances/${dim}/${variant}/`,
-        sourcePath: `claude/stances/${dim}/${f}`,
+        sourcePath: `${sourceDir('stances')}/${dim}/${f}`,
         collection: 'stances',
         collectionId: `${dim}/${variant}`,
         lines: lineCount(text),
@@ -233,8 +234,8 @@ function stances(): Dimension[] {
           { label: 'Dimension', value: dim, mono: true },
           { label: 'Variant', value: variant, mono: true },
           ...(isDefault ? [{ label: 'Default', value: 'in config.example.json', tone: 'amber' as const }] : []),
-          { label: 'Linked as', value: `~/.claude/rules/harness-stances/${dim}.md`, mono: true },
-          { label: 'Path', value: `claude/stances/${dim}/${f}`, mono: true },
+          { label: 'Linked as', value: 'selected policy → native runtime projection', mono: true },
+          { label: 'Path', value: `${sourceDir('stances')}/${dim}/${f}`, mono: true },
         ],
         frontmatter: {},
         dimension: dim,
@@ -246,7 +247,7 @@ function stances(): Dimension[] {
       id: dim,
       title: titleFromDimension(dim),
       route: `/stances/${dim}/`,
-      sourcePath: `claude/stances/${dim}`,
+      sourcePath: `${sourceDir('stances')}/${dim}`,
       defaultVariant,
       variants,
     };
@@ -254,10 +255,10 @@ function stances(): Dimension[] {
 }
 
 function skills(): Entry[] {
-  return listDir('claude/skills', (d) => exists(`claude/skills/${d}/SKILL.md`)).map((name) => {
-    const text = read(`claude/skills/${name}/SKILL.md`);
+  return listDir(sourceDir('skills'), (d) => exists(`${sourceDir('skills')}/${d}/SKILL.md`)).map((name) => {
+    const text = read(`${sourceDir('skills')}/${name}/SKILL.md`);
     const { data } = parseFrontmatter(text);
-    const files = walkFiles(`claude/skills/${name}`).filter((f) => !f.endsWith('/SKILL.md')).map((f) => f.replace(`claude/skills/${name}/`, ''));
+    const files = walkFiles(`${sourceDir('skills')}/${name}`).filter((f) => !f.endsWith('/SKILL.md')).map((f) => f.replace(`${sourceDir('skills')}/${name}/`, ''));
     return {
       kind: 'skills',
       id: name,
@@ -265,12 +266,12 @@ function skills(): Entry[] {
       title: data.name ?? name,
       summary: firstSentence(data.description ?? ''),
       route: `/skills/${name}/`,
-      sourcePath: `claude/skills/${name}/SKILL.md`,
+      sourcePath: `${sourceDir('skills')}/${name}/SKILL.md`,
       collection: 'skills',
       collectionId: name,
       lines: lineCount(text),
       meta: [
-        { label: 'Path', value: `claude/skills/${name}/SKILL.md`, mono: true },
+        { label: 'Path', value: `${sourceDir('skills')}/${name}/SKILL.md`, mono: true },
         { label: 'Loaded', value: 'on invocation' },
         { label: 'Lines', value: String(lineCount(text)) },
         ...(files.length ? [{ label: 'Ships', values: files, mono: true }] : []),
@@ -282,9 +283,9 @@ function skills(): Entry[] {
 }
 
 function agents(): Entry[] {
-  return listDir('claude/agents', (f) => f.endsWith('.md')).map((f) => {
+  return listDir(sourceDir('agents'), (f) => f.endsWith('.md')).map((f) => {
     const id = f.replace(/\.md$/, '');
-    const text = read(`claude/agents/${f}`);
+    const text = read(`${sourceDir('agents')}/${f}`);
     const { data } = parseFrontmatter(text);
     const tools = (data.tools ?? '').split(',').map((t) => t.trim()).filter(Boolean);
     return {
@@ -294,15 +295,16 @@ function agents(): Entry[] {
       title: data.name ?? id,
       summary: firstSentence(data.description ?? ''),
       route: `/agents/${id}/`,
-      sourcePath: `claude/agents/${f}`,
+      sourcePath: `${sourceDir('agents')}/${f}`,
       collection: 'agents',
       collectionId: id,
       lines: lineCount(text),
       meta: [
-        { label: 'Model', value: data.model ?? 'inherit', mono: true },
+        { label: 'Authority', value: data.authority ?? 'legacy native definition', mono: true },
+        { label: 'Model', value: data.model ?? 'runtime adapter', mono: true },
         { label: 'Effort', value: data.effort ?? 'inherit', mono: true },
         { label: 'Tools', values: tools, mono: true },
-        { label: 'Path', value: `claude/agents/${f}`, mono: true },
+        { label: 'Path', value: `${sourceDir('agents')}/${f}`, mono: true },
       ],
       frontmatter: { ...data, tools: tools.join(', ') },
     };
@@ -312,9 +314,9 @@ function agents(): Entry[] {
 const COMMAND_ORDER = ['research', 'plan', 'build', 'review', 'handoff'];
 
 function commands(): Entry[] {
-  const list = listDir('claude/commands', (f) => f.endsWith('.md')).map((f) => {
+  const list = listDir(sourceDir('commands'), (f) => f.endsWith('.md')).map((f) => {
     const id = f.replace(/\.md$/, '');
-    const text = read(`claude/commands/${f}`);
+    const text = read(`${sourceDir('commands')}/${f}`);
     const { data } = parseFrontmatter(text);
     return {
       kind: 'commands' as const,
@@ -323,14 +325,14 @@ function commands(): Entry[] {
       title: `/${id}`,
       summary: firstSentence(data.description ?? ''),
       route: `/commands/${id}/`,
-      sourcePath: `claude/commands/${f}`,
+      sourcePath: `${sourceDir('commands')}/${f}`,
       collection: 'commands',
       collectionId: id,
       lines: lineCount(text),
       meta: [
         { label: 'Invoke', value: `/${id}${data['argument-hint'] ? ' ' + data['argument-hint'] : ''}`, mono: true },
         { label: 'Step', value: `${COMMAND_ORDER.indexOf(id) + 1} of ${COMMAND_ORDER.length} in the ritual` },
-        { label: 'Path', value: `claude/commands/${f}`, mono: true },
+        { label: 'Path', value: `${sourceDir('commands')}/${f}`, mono: true },
       ],
       frontmatter: data,
     };
@@ -339,9 +341,9 @@ function commands(): Entry[] {
 }
 
 function outputStyles(): Entry[] {
-  return listDir('claude/output-styles', (f) => f.endsWith('.md')).map((f) => {
+  return listDir(sourceDir('output-styles'), (f) => f.endsWith('.md')).map((f) => {
     const id = f.replace(/\.md$/, '');
-    const text = read(`claude/output-styles/${f}`);
+    const text = read(`${sourceDir('output-styles')}/${f}`);
     const { data } = parseFrontmatter(text);
     return {
       kind: 'output-styles',
@@ -350,14 +352,14 @@ function outputStyles(): Entry[] {
       title: data.name ?? id,
       summary: firstSentence(data.description ?? ''),
       route: `/output-styles/${id}/`,
-      sourcePath: `claude/output-styles/${f}`,
+      sourcePath: `${sourceDir('output-styles')}/${f}`,
       collection: 'outputStyles',
       collectionId: id,
       lines: lineCount(text),
       meta: [
         { label: 'Linked as', value: `~/.claude/output-styles/${f}`, mono: true },
         { label: 'Selected by', value: 'settings.json outputStyle, an owned key', mono: true },
-        { label: 'Path', value: `claude/output-styles/${f}`, mono: true },
+        { label: 'Path', value: `${sourceDir('output-styles')}/${f}`, mono: true },
       ],
       frontmatter: data,
     };
@@ -527,6 +529,7 @@ export function getTree(): TreeGroup[] {
         { label: 'Overview', route: '/' },
         { label: 'Install and configure', route: '/install/' },
         { label: 'The CLI', route: '/cli/' },
+        { label: 'Compatibility', route: '/compatibility/' },
       ],
     },
     { label: 'Rules', kind: 'rules', route: '/rules/', count: String(c.rules), items: r.rules.map((e) => item(e)) },
@@ -544,8 +547,8 @@ export function getTree(): TreeGroup[] {
       })),
     },
     { label: 'Skills', kind: 'skills', route: '/skills/', count: String(c.skills), items: r.skills.map((e) => item(e)) },
-    { label: 'Agents', kind: 'agents', route: '/agents/', count: String(c.agents), items: r.agents.map((e) => item(e, e.frontmatter.model)) },
-    { label: 'Commands', kind: 'commands', route: '/commands/', count: String(c.commands), items: r.commands.map((e) => item(e)) },
+    { label: 'Roles', kind: 'agents', route: '/agents/', count: String(c.agents), items: r.agents.map((e) => item(e, e.frontmatter.model)) },
+    { label: 'Workflows', kind: 'commands', route: '/commands/', count: String(c.commands), items: r.commands.map((e) => item(e)) },
     { label: 'Hooks', kind: 'hooks', route: '/hooks/', count: String(c.hooks), items: r.hooks.map((e) => item(e, e.hook?.event)) },
     { label: 'Output style', kind: 'output-styles', route: '/output-styles/', count: String(c.outputStyles), items: r.outputStyles.map((e) => item(e)) },
     { label: 'Docs', kind: 'docs', route: '/docs/', count: String(c.docs), items: r.docs.map((e) => item(e)) },
@@ -560,16 +563,19 @@ export function manifest() {
   const routes: ManifestRoute[] = [
     { route: '/', kind: 'page', id: 'overview', title: 'Overview', source: 'README.md' },
     { route: '/install/', kind: 'page', id: 'install', title: 'Install and configure', source: 'README.md' },
+    { route: '/compatibility/', kind: 'page', id: 'compatibility', title: 'Compatibility', source: 'compatibility/catalog.json' },
     { route: '/cli/', kind: 'page', id: 'cli', title: 'The CLI', source: 'bin/harness' },
     ...(['rules', 'stances', 'skills', 'agents', 'commands', 'hooks', 'output-styles', 'docs'] as Kind[]).map((k) => ({
       route: `/${k}/`,
       kind: 'index',
       id: k,
       title: KIND_LABEL[k],
-      source: k === 'docs' ? 'docs' : `claude/${k}`,
+      source: sourceDir(k),
     })),
     ...r.stances.map((d) => ({ route: d.route, kind: 'stance-dimension', id: d.id, title: d.title, source: d.sourcePath })),
     ...flatten().map((e) => ({ route: e.route, kind: e.kind, id: e.id, title: e.title, source: e.sourcePath })),
   ];
-  return { name: 'agent-harness', version: r.version, repo: REPO_URL, counts: getCounts(), routes };
+  return { name: 'agent-harness', version: r.version, repo: REPO_URL, counts: getCounts(), routes,
+    compatibility: compatibility(), release: { tag: `v${r.version}`,
+      commit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: VENDOR, encoding: 'utf8' }).trim() } };
 }

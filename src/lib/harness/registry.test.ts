@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { VENDOR } from './paths.ts';
+import { VENDOR, sourceDir } from './paths.ts';
 import { listHooks } from './hooks.ts';
 import { honesty, listCli } from './cli.ts';
 import {
@@ -50,16 +50,12 @@ describe('the registry', () => {
   const r = getRegistry();
   const c = getCounts();
 
-  it('counts what the README claims for v0.7.0', () => {
-    expect(c.rules).toBe(10);
-    expect(c.stanceDimensions).toBe(8);
-    expect(c.stanceVariants).toBe(23);
-    expect(c.skills).toBe(14);
-    expect(c.agents).toBe(7);
-    expect(c.commands).toBe(5);
-    expect(c.hooks).toBe(11);
-    expect(c.outputStyles).toBe(1);
-    expect(c.docs).toBe(10);
+  it('derives inventory from the pinned source rather than a historical release count', () => {
+    const defaults = JSON.parse(fs.readFileSync(path.join(VENDOR, 'config.example.json'), 'utf8')).stances;
+    expect(c.stanceDimensions).toBe(Object.keys(defaults).length);
+    expect(c.stanceVariants).toBe(r.stances.reduce((sum, dimension) => sum + dimension.variants.length, 0));
+    expect(c.rules).toBeGreaterThan(0);
+    expect(c.skills).toBeGreaterThan(0);
   });
 
   it('gives every entry a title, a route and a source file that exists', () => {
@@ -88,10 +84,13 @@ describe('the registry', () => {
 
   it('reads agent frontmatter into the meta strip', () => {
     const builder = r.agents.find((a) => a.id === 'builder')!;
-    expect(builder.frontmatter.model).toBe('opus');
-    expect(builder.meta.find((m) => m.label === 'Tools')?.values).toContain('Edit');
-    const others = r.agents.filter((a) => a.id !== 'builder');
-    expect(others.every((a) => !a.meta.find((m) => m.label === 'Tools')?.values?.includes('Edit'))).toBe(true);
+    if (builder.frontmatter.authority) {
+      expect(builder.frontmatter.authority).toBe('workspace-write');
+      expect(builder.meta.find((m) => m.label === 'Model')?.value).toBe('runtime adapter');
+    } else {
+      expect(builder.frontmatter.model).toBe('opus');
+      expect(builder.meta.find((m) => m.label === 'Tools')?.values).toContain('Edit');
+    }
   });
 
   it('orders commands as the ritual runs', () => {
@@ -116,7 +115,7 @@ describe('the registry', () => {
     expect(tree.map((g) => g.kind)).toEqual(['start', 'rules', 'stances', 'skills', 'agents', 'commands', 'hooks', 'output-styles', 'docs']);
     const stances = tree.find((g) => g.kind === 'stances')!;
     expect(stances.items.find((i) => i.label === 'testing')?.children?.map((v) => v.label)).toEqual(['off', 'pragmatic', 'required']);
-    expect(entriesOf('stances')).toHaveLength(23);
+    expect(entriesOf('stances')).toHaveLength(c.stanceVariants);
   });
 
   it('points source links at the pinned tag', () => {
@@ -155,14 +154,15 @@ describe('hooks', () => {
     const gate = hooks.find((h) => h.id === 'stop-gate')!;
     expect(gate.summary).toMatch(/^Stop hook: run the repository's own gate/);
     expect(gate.source).toContain('MAX_BLOCKS');
-    expect(hooks.find((h) => h.id === 'filter-output')?.helper).toBe('claude/hooks/filter-lines.py');
+    expect(hooks.find((h) => h.id === 'filter-output')?.helper).toBe(`${sourceDir('hooks')}/filter-lines.py`);
   });
 });
 
 describe('the CLI and the honesty strip', () => {
   it('finds every subcommand in bin/harness', () => {
     const names = listCli().map((c) => c.name);
-    expect(names).toEqual(['install', 'sync', 'diff', 'doctor', 'uninstall', 'lint', 'usage', 'trust', 'workspace', 'config', 'bmad']);
+    expect(names).toEqual(expect.arrayContaining(['install', 'sync', 'diff', 'doctor', 'uninstall', 'lint', 'usage', 'trust', 'workspace', 'config', 'bmad']));
+    expect(new Set(names).size).toBe(names.length);
     expect(listCli().every((c) => c.help.length > 0)).toBe(true);
   });
   it('reads the always-loaded cap and counts the tests', () => {

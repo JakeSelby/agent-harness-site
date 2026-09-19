@@ -1,0 +1,16 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+import { compatibility } from '../lib/harness/paths.ts';
+const catalog = compatibility();
+---
+<DocsLayout title="Compatibility" description="Versioned agent-runtime, client and platform qualification from the pinned harness release." crumbs={[{ label: 'compatibility' }]} kind="Reference">
+  <h1>What is qualified</h1>
+  <p class="lede">Shared preferences are portable. Native support is verified per runtime, client and platform.</p>
+  <p>A model provider supplies the model; a runtime orchestrates tools and context; a client exposes the runtime. Cursor belongs in the runtime/client integration catalog even when it routes to other providers.</p>
+  <div class="harness-prose">
+    <ul>{catalog.clients.map((client: {id: string; status: string; runtime: string; provider: string}) => <li><strong>{client.id}</strong>: {client.status} — runtime {client.runtime}, provider {client.provider}</li>)}</ul>
+    {catalog.limitations.map((note: string) => <p>{note}</p>)}
+    <p>Qualified means native acceptance evidence for the exact release and client. Unqualified means evidence is incomplete. Planned means an integration is still to come.</p>
+    <p>Native permissions take precedence. A custom stance is a harness policy primitive, not a promise of identical model behavior.</p>
+  </div>
+</DocsLayout>

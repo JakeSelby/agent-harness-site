@@ -1,30 +1,11 @@
 ---
-// The load order from docs/how-it-works.md, as a ladder: what ~/.claude sees on
-// the left, where it points in the checkout on the right. Every row links to
-// the kind it describes.
 const rows = [
-  { l: '~/.claude/CLAUDE.md', g: '→', r: 'claude/CLAUDE.md', why: 'global instructions, delegation, the cap', href: '/docs/how-it-works/' },
-  { l: '  └ @CLAUDE.personal.md', g: '', r: 'rendered from config', why: 'yours, untracked', href: '/install/', personal: true },
-  { l: '~/.claude/rules/harness/', g: '→', r: 'claude/rules/*.md', why: 'core rules, every session', href: '/rules/' },
-  { l: '~/.claude/rules/harness-stances/', g: '→', r: 'claude/stances/<p>/<v>.md', why: 'one chosen variant per preference', href: '/stances/' },
-  { l: '~/.claude/skills/<name>/', g: '→', r: 'claude/skills/<name>/', why: 'procedures, loaded on invocation', href: '/skills/' },
-  { l: '~/.claude/agents/<name>.md', g: '→', r: 'claude/agents/*.md', why: 'subagent definitions, spawned by name', href: '/agents/' },
-  { l: '~/.claude/commands/<name>.md', g: '→', r: 'claude/commands/*.md', why: 'slash commands, one per keystroke', href: '/commands/' },
-  { l: '~/.claude/hooks/harness/', g: '→', r: 'claude/hooks/*.py', why: 'run at lifecycle points, no judgment involved', href: '/hooks/' },
-  { l: '~/.claude/output-styles/scannable.md', g: '→', r: 'claude/output-styles/', why: 'the shape of every reply', href: '/output-styles/' },
-  { l: '~/.claude/settings.json', g: '⇐', r: 'claude/settings.template.json', why: 'merged, only the keys OWNERSHIP.json names', href: '/docs/settings-ownership/', merge: true },
+  { l: 'Your preferences', r: 'Explicit stance selections', why: 'user → project → session', href: '/stances/' },
+  { l: 'Shared primitives', r: 'Rules · skills · roles · workflows', why: 'one authoring authority', href: '/docs/how-it-works/' },
+  { l: 'Runtime adapters', r: 'Native instructions and controls', why: 'capability differences stay visible', href: '/compatibility/' },
+  { l: 'Claude Code · Codex', r: 'CLI · editor · desktop', why: 'qualification is per client and platform', href: '/compatibility/' },
 ];
 ---
-
-<ol class="ladder" aria-label="Load order">
-  {rows.map((row) => (
-    <li class:list={{ merge: row.merge, personal: row.personal }}>
-      <a href={row.href}>
-        <span class="l">{row.l}</span>
-        <span class="g" aria-hidden="true">{row.g}</span>
-        <span class="r">{row.r}</span>
-        <span class="why">{row.why}</span>
-      </a>
-    </li>
-  ))}
+<ol class="ladder" aria-label="Shared primitives and runtime projections">
+  {rows.map((row) => <li><a href={row.href}><span class="l">{row.l}</span><span class="g" aria-hidden="true">→</span><span class="r">{row.r}</span><span class="why">{row.why}</span></a></li>)}
 </ol>

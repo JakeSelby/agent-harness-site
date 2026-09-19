@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { VENDOR } from './paths.ts';
+import { VENDOR, sourceDir } from './paths.ts';
 
 export interface Hook {
   id: string;
@@ -49,7 +49,7 @@ export function listHooks(root = VENDOR): Hook[] {
         const id = cmd.match(/#\s*harness:([\w-]+)/)?.[1];
         const script = cmd.match(/hooks\/harness\/([\w-]+\.py)/)?.[1];
         if (!id || !script) continue;
-        const file = `claude/hooks/${script}`;
+        const file = `${sourceDir('hooks', root)}/${script}`;
         const source = fs.readFileSync(path.join(root, file), 'utf8');
         const docstring = docstringOf(source);
         const own = ids[id] ?? {};
@@ -67,7 +67,7 @@ export function listHooks(root = VENDOR): Hook[] {
           docstring,
           source,
           lines: source.split('\n').length,
-          helper: id === 'filter-output' && fs.existsSync(path.join(root, 'claude/hooks/filter-lines.py')) ? 'claude/hooks/filter-lines.py' : null,
+          helper: id === 'filter-output' && fs.existsSync(path.join(root, `${sourceDir('hooks', root)}/filter-lines.py`)) ? `${sourceDir('hooks', root)}/filter-lines.py` : null,
         });
       }
     }
