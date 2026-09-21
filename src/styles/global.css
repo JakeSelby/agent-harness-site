@@ -114,7 +114,7 @@ kbd.key { font-size: 0.7rem; padding: 0.05rem 0.35rem; border: 1px solid var(--b
 .source-link svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .view { max-width: var(--measure); }
 .view.wide { max-width: none; }
-.view.wide .hero, .view.wide #the-cli, .view.wide #honest, .view.wide .lede, .view.wide .panel, .view.wide .meta, .view.wide .tabs, .view.wide .ritual-note { max-width: 76ch; }
+.view.wide .hero, .view.wide .cli, .view.wide #honest, .view.wide .lede, .view.wide .panel, .view.wide .meta, .view.wide .tabs, .view.wide .ritual-note { max-width: 76ch; }
 .eyebrow { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
 .lede { font-size: 1.1rem; color: var(--fg-2); max-width: 60ch; margin-top: 0.9rem; }
 .lede code { font-size: 0.85em; }
@@ -192,8 +192,8 @@ pre.astro-code .code-copy { position: absolute; top: 0.5rem; right: 0.5rem; }
 .hero { padding: 2.25rem 0 0; }
 .hero .cta { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.5rem; }
 .install { margin-top: 1.25rem; }
-.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
-.pillars h3 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.pillars h2 { font-size: 0.95rem; margin-bottom: 0.3rem; }
 .pillars p { font-size: 0.86rem; color: var(--fg-2); }
 .pillars .k { font-family: var(--font-mono); font-size: 0.7rem; color: var(--amber-text); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 0.4rem; }
 
@@ -222,6 +222,7 @@ pre.astro-code .code-copy { position: absolute; top: 0.5rem; right: 0.5rem; }
 .fold[open] summary { color: var(--fg); border-bottom: 1px solid var(--border-subtle); margin-bottom: 0.9rem; }
 .fold > :last-child { margin-bottom: 0.9rem; }
 .fold .muted.small + .muted.small { margin-top: 0.5rem; }
+.folds .fold + h2 { margin-top: 2rem; }
 
 .ladder { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); overflow: hidden; font-size: 0.8rem; }
 .ladder li { border-top: 1px solid var(--border-subtle); }

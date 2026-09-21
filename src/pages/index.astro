@@ -34,7 +34,8 @@ const plannedHref = (item: { issue?: number; catalog?: string; doc?: string }): 
 };
 
 const install = [
-  'git clone --branch stable https://github.com/JakeSelby/agent-harness.git ~/repos/agent-harness',
+  'git clone --branch stable \\',
+  '  https://github.com/JakeSelby/agent-harness.git ~/repos/agent-harness',
   'cd ~/repos/agent-harness',
   'bin/harness install',
   '# Homebrew packages, VS Code + extensions, Claude Code, Codex, gh, then sync',
@@ -108,9 +109,9 @@ const headings = [
 
   <section class="block">
     <div class="pillars">
-      <div><span class="k">Your working style</span><h3>You choose the behavior</h3><p>Make preferences explicit and switch them as your work changes.</p></div>
-      <div><span class="k">Personal stances</span><h3>Switch a policy, keep one source</h3><p>Compare the <a href="/stances/delegation/">delegation variants</a> and inspect their resolved behavior.</p></div>
-      <div><span class="k">Custom primitives</span><h3>Extend what the harness can express</h3><p>Author your own stance dimensions, skills, roles and workflows.</p></div>
+      <div><span class="k">Your working style</span><h2>You choose the behavior</h2><p>Make preferences explicit and switch them as your work changes.</p></div>
+      <div><span class="k">Personal stances</span><h2>Switch a policy, keep one source</h2><p>Compare the <a href="/stances/delegation/">delegation variants</a> and inspect their resolved behavior.</p></div>
+      <div><span class="k">Custom primitives</span><h2>Extend what the harness can express</h2><p>Author your own stance dimensions, skills, roles and workflows.</p></div>
     </div>
   </section>
 
@@ -151,18 +152,17 @@ const headings = [
     </p>
   </section>
 
+  <section class="block folds">
   {DemoContent && (
-    <section class="block" id="stance-demo">
-      <h2>A stance switch, in practice</h2>
+    <>
+      <h2 id="stance-demo">A stance switch, in practice</h2>
       <details class="fold">
         <summary>Show one stance switch, end to end</summary>
         <div class="harness-prose"><DemoContent /></div>
       </details>
-    </section>
+    </>
   )}
-
-  <section class="block" id="the-cli">
-    <h2>The CLI</h2>
+    <h2 id="the-cli">The CLI</h2>
     <details class="fold">
       <summary>Show every subcommand</summary>
       <dl class="cli">
