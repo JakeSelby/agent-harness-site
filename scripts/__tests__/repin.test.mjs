@@ -99,3 +99,14 @@ test('the CLI reports a no-op green and a bad tag red', () => {
   assert.equal(bad.written, '');
   assert.match(bad.stderr, /not a v<semver> tag/);
 });
+
+test('the workflow fetches the pinned tag before it describes the submodule', () => {
+  // actions/checkout leaves the submodule shallow and tagless, where a bare
+  // `git describe --tags --exact-match` fails with "No names found".
+  const workflow = readFileSync(new URL('../../.github/workflows/repin.yml', import.meta.url), 'utf8');
+  const fetch = workflow.indexOf('fetch --quiet --depth=1 origin tag "$pinned"');
+  const describe = workflow.indexOf('describe --tags --exact-match');
+  assert.ok(fetch > 0, 'the compare step fetches the pinned tag');
+  assert.ok(describe > fetch, 'and only then asks git to describe HEAD');
+  assert.match(workflow, /pinned="v\$\(cat vendor\/agent-harness\/VERSION\)"/);
+});

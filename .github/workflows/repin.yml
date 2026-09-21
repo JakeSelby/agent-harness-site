@@ -45,6 +45,10 @@ jobs:
         id: decide
         run: |
           latest=$(gh api repos/JakeSelby/agent-harness/releases/latest --jq .tag_name)
+          # A CI checkout of the submodule is shallow and carries no tags, so fetch the one
+          # tag VERSION names before asking whether HEAD is it, as scripts/smoke.mjs does.
+          pinned="v$(cat vendor/agent-harness/VERSION)"
+          git -C vendor/agent-harness fetch --quiet --depth=1 origin tag "$pinned"
           current=$(git -C vendor/agent-harness describe --tags --exact-match)
           node scripts/repin.mjs "$current" "$latest"
 
