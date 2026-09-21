@@ -6,7 +6,7 @@ import SourceBlock from '../components/SourceBlock.astro';
 import { getCounts, getRegistry, siteRoutes, version } from '../lib/harness/registry.ts';
 import { honesty, listCli } from '../lib/harness/cli.ts';
 import { REPO_URL, product, compatibility } from '../lib/harness/paths.ts';
-import { docLink } from '../lib/harness/links.ts';
+import { docLink, sourceRoutes } from '../lib/harness/links.ts';
 import { inlineCode } from '../lib/harness/text.ts';
 
 const p = product();
@@ -17,6 +17,9 @@ const cli = listCli();
 const h = honesty();
 const v = version();
 const routes = siteRoutes();
+// A hook page is built under its registered id, not the stem of its script, so hook doc
+// paths resolve through the registry rather than through their filename.
+const bySource = sourceRoutes(r.hooks);
 const demonstration = r.docs.some((entry) => entry.id === 'stance-demo') ? await getEntry('docs', 'stance-demo') : undefined;
 const DemoContent = demonstration ? (await render(demonstration)).Content : null;
 
@@ -30,7 +33,7 @@ const planned = p.on_the_way ?? [];
 const plannedHref = (item: { issue?: number; catalog?: string; doc?: string }): string | null => {
   if (typeof item.issue === 'number') return `${REPO_URL}/issues/${item.issue}`;
   if (item.catalog) return '/compatibility/';
-  return docLink(item.doc, routes);
+  return docLink(item.doc, routes, bySource);
 };
 
 const install = [
@@ -92,7 +95,7 @@ const headings = [
             <p class="pitch">{group.pitch}</p>
             <ul>
               {group.features.map((feature) => {
-                const href = docLink(feature.doc, routes);
+                const href = docLink(feature.doc, routes, bySource);
                 return (
                   <li>
                     {href ? <a class="name" href={href}>{feature.name}</a> : <span class="name">{feature.name}</span>}

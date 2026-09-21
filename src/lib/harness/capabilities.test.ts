@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { docLink, routeForDocPath } from './links.ts';
-import { siteRoutes } from './registry.ts';
+import { docLink, routeForDocPath, sourceRoutes } from './links.ts';
+import { getRegistry, siteRoutes } from './registry.ts';
 import type { Product } from './paths.ts';
 
 /** The capability copy as it stands in the harness, ahead of the pin the site vendors. */
@@ -15,13 +15,6 @@ const docs = [
   ...(fixture.capabilities ?? []).flatMap((group) => group.features.map((f) => f.doc)),
   ...(fixture.on_the_way ?? []).map((item) => item.doc),
 ].filter((d): d is string => typeof d === 'string');
-
-/**
- * Paths the mapping resolves but this pin has no page for: the hook script is registered
- * under the shorter id `neutralize`, so `/hooks/neutralize-tool-output/` is not built. The
- * overview renders those features as plain text.
- */
-const NO_PAGE_AT_PIN = ['claude/hooks/neutralize-tool-output.py'];
 
 describe('routeForDocPath', () => {
   it('maps both the shared and the claude spelling of every kind', () => {
@@ -56,23 +49,23 @@ describe('routeForDocPath', () => {
 
 describe('the capability copy', () => {
   const routes = siteRoutes();
+  const bySource = sourceRoutes(getRegistry().hooks);
 
   it('gives every feature and planned item a doc path the mapping understands', () => {
     expect(docs.length).toBeGreaterThan(20);
     for (const doc of docs) expect(routeForDocPath(doc), doc).not.toBeNull();
   });
 
-  it('resolves every doc path to a page the site builds, bar the pages this pin lacks', () => {
-    const unresolved = docs.filter((doc) => docLink(doc, routes) === null);
-    expect(unresolved).toEqual(NO_PAGE_AT_PIN);
+  it('resolves every doc path to a page the site builds', () => {
+    expect(docs.filter((doc) => docLink(doc, routes, bySource) === null)).toEqual([]);
   });
 
   it('never links a route the site does not build', () => {
     for (const doc of docs) {
-      const href = docLink(doc, routes);
+      const href = docLink(doc, routes, bySource);
       if (href !== null) expect(routes.has(href), doc).toBe(true);
     }
-    expect(docLink(undefined, routes)).toBeNull();
-    expect(docLink('bin/harness', routes)).toBeNull();
+    expect(docLink(undefined, routes, bySource)).toBeNull();
+    expect(docLink('bin/harness', routes, bySource)).toBeNull();
   });
 });

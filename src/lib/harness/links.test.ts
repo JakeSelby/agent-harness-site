@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { isExternalHref, resolveRelative, routeForRepoPath } from './links.ts';
+import { docLink, isExternalHref, resolveRelative, routeForRepoPath, sourceRoutes } from './links.ts';
+import { getRegistry, siteRoutes } from './registry.ts';
 
 const exists = (p: string) => ['LICENSE', 'bin/harness', 'tests/test_lint.py', 'docs/usage.md'].includes(p);
 const V = '0.2.0';
@@ -54,5 +55,47 @@ describe('isExternalHref', () => {
     expect(isExternalHref('/rules/')).toBe(true);
     expect(isExternalHref('docs/usage.md')).toBe(false);
     expect(isExternalHref('../x.md')).toBe(false);
+  });
+});
+
+describe('docLink through the registry source map', () => {
+  const routes = siteRoutes();
+  const bySource = sourceRoutes(getRegistry().hooks);
+
+  /**
+   * The pinned product.json carries no capability copy, so the hook doc paths the overview
+   * links are listed here and resolved against the real registry.
+   */
+  const HOOK_DOCS = [
+    'claude/hooks/brief-guard.py',
+    'claude/hooks/grade-bash.py',
+    'claude/hooks/stop-gate.py',
+    'claude/hooks/neutralize-tool-output.py',
+  ];
+
+  it('resolves every hook doc path to a page the site builds', () => {
+    for (const doc of HOOK_DOCS) {
+      const href = docLink(doc, routes, bySource);
+      expect(href, doc).not.toBeNull();
+      expect(routes.has(href!), doc).toBe(true);
+    }
+  });
+
+  it('links a hook by its registered id, not the stem of its script', () => {
+    expect(docLink('claude/hooks/neutralize-tool-output.py', routes, bySource)).toBe('/hooks/neutralize/');
+    expect(docLink('claude/hooks/neutralize-tool-output.py', routes)).toBeNull();
+  });
+
+  it('accepts the policy spelling of the hooks directory', () => {
+    expect(docLink('policy/hooks/allow-readonly-bash.py', routes, bySource)).toBe('/hooks/readonly-bash/');
+    expect(docLink('policy/hooks/validate-plan-card.py', routes, bySource)).toBe('/hooks/plan-card/');
+  });
+
+  it('leaves every path that is not a hook where it was', () => {
+    for (const doc of ['primitives/rules/secrets.md', 'claude/skills/plan-authoring/SKILL.md', 'docs/usage.md', 'bin/harness']) {
+      expect(docLink(doc, routes, bySource), doc).toBe(docLink(doc, routes));
+    }
+    expect(docLink('primitives/rules/secrets.md', routes, bySource)).toBe('/rules/secrets/');
+    expect(docLink(undefined, routes, bySource)).toBeNull();
   });
 });

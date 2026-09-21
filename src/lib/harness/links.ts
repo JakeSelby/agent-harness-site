@@ -100,10 +100,41 @@ export function routeForDocPath(rel: string): string | null {
   return null;
 }
 
-/** The route for a `doc` value, but only when the site actually builds that page. */
-export function docLink(rel: string | undefined, routes: ReadonlySet<string>): string | null {
+/** A registry entry as far as the source-path map is concerned. */
+interface SourceRouted { sourcePath: string; route: string }
+
+/** Both spellings the harness keeps its hooks under; `sourceDir` returns either one. */
+const HOOK_DIRS = ['claude/hooks', 'policy/hooks'];
+
+/**
+ * A source-path to route map for entries whose route is not derivable from their filename.
+ * Hooks are the case: a hook page is built under its registered id, which for six of the
+ * eleven differs from the stem of the script that implements it, so `routeForDocPath` alone
+ * would point a `doc` value at a page the site never builds.
+ */
+export function sourceRoutes(entries: readonly SourceRouted[]): ReadonlyMap<string, string> {
+  const out = new Map<string, string>();
+  for (const entry of entries) {
+    const file = entry.sourcePath.replace(/\\/g, '/').split('/').pop();
+    if (!file) continue;
+    for (const dir of HOOK_DIRS) out.set(`${dir}/${file}`, entry.route);
+  }
+  return out;
+}
+
+/**
+ * The route for a `doc` value, but only when the site actually builds that page. `bySource`
+ * maps a repository source path to the route built from it and wins over the filename
+ * mapping; see `sourceRoutes`.
+ */
+export function docLink(
+  rel: string | undefined,
+  routes: ReadonlySet<string>,
+  bySource?: ReadonlyMap<string, string>,
+): string | null {
   if (!rel) return null;
-  const route = routeForDocPath(rel);
+  const p = rel.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '');
+  const route = bySource?.get(p) ?? routeForDocPath(rel);
   return route && routes.has(route) ? route : null;
 }
 
