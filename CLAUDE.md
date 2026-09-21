@@ -42,6 +42,19 @@ and `git status --porcelain` is empty (generated output and local config are ign
 - Every colour comes from the tokens at the top of `src/styles/global.css`; no hex elsewhere.
 - **`AGENTS.md` is a symlink to this file.** Edit `CLAUDE.md`.
 
+## Keeping the page current
+
+- **The landing copy lives in `vendor/agent-harness/product.json`** and is changed upstream in the
+  harness, then released. Never edit it here; a repin would drop the edit.
+- **`.github/workflows/repin.yml` owns the submodule bump.** Hourly and on demand it compares the
+  latest harness release with the pinned tag, checks out anything newer, runs the gate against it,
+  and only then commits `chore(vendor): pin agent-harness vX.Y.Z` to `main`. A red gate pushes
+  nothing and fails the run. `scripts/repin.mjs` decides, so the version compare has tests.
+- **A hand repin is allowed only to a release tag** — never a branch, never a bare commit. The
+  smoke test refuses any other commit and so does the workflow.
+- **After any repin, confirm the live `/manifest.json` names the new version and commit:**
+  `curl -s https://agent-harness.jakeselby.com/manifest.json | head -c 200`.
+
 ## Things that will bite you
 
 - **The submodule is the content.** A fresh clone without `git submodule update --init` builds
