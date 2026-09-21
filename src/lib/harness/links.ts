@@ -49,6 +49,64 @@ export function routeForRepoPath(
   return null;
 }
 
+/** Directories the harness keeps a kind in, in both the shared and the `claude/` spelling. */
+const DOC_DIRS: Record<string, string> = {
+  'primitives/rules': 'rules',
+  'claude/rules': 'rules',
+  'primitives/stances': 'stances',
+  'claude/stances': 'stances',
+  'primitives/skills': 'skills',
+  'claude/skills': 'skills',
+  'primitives/roles': 'agents',
+  'claude/agents': 'agents',
+  'primitives/workflows': 'commands',
+  'claude/commands': 'commands',
+  'primitives/presentation': 'output-styles',
+  'claude/output-styles': 'output-styles',
+  'policy/hooks': 'hooks',
+  'claude/hooks': 'hooks',
+  docs: 'docs',
+};
+
+const NAME = /^[\w.-]+$/;
+const stem = (name: string) => name.replace(/\.(md|py)$/, '');
+
+/**
+ * Map a `doc` value in product.json, a repo-relative path or directory, to a site route by
+ * its directory kind and its basename. Returns null when no kind owns the path, which the
+ * caller renders as plain text rather than a dead link.
+ */
+export function routeForDocPath(rel: string): string | null {
+  const p = rel.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '');
+  if (p === '' || p.startsWith('../') || p.includes('/../')) return null;
+
+  for (const [dir, kind] of Object.entries(DOC_DIRS)) {
+    if (p === dir) return `/${kind}/`;
+    if (!p.startsWith(`${dir}/`)) continue;
+    const parts = p.slice(dir.length + 1).split('/');
+    if (!parts.every((part) => NAME.test(part))) return null;
+
+    if (kind === 'skills') {
+      if (parts.length === 1 || (parts.length === 2 && parts[1] === 'SKILL.md')) return `/skills/${parts[0]}/`;
+      return null;
+    }
+    if (kind === 'stances') {
+      if (parts.length === 1) return `/stances/${parts[0]}/`;
+      if (parts.length === 2) return `/stances/${parts[0]}/${stem(parts[1])}/`;
+      return null;
+    }
+    return parts.length === 1 ? `/${kind}/${stem(parts[0])}/` : null;
+  }
+  return null;
+}
+
+/** The route for a `doc` value, but only when the site actually builds that page. */
+export function docLink(rel: string | undefined, routes: ReadonlySet<string>): string | null {
+  if (!rel) return null;
+  const route = routeForDocPath(rel);
+  return route && routes.has(route) ? route : null;
+}
+
 /**
  * Resolve an href written in a markdown file at `fromRepoPath` to a repo-relative path.
  * Strips the fragment and query; returns null when the target escapes the repo.

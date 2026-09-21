@@ -515,6 +515,22 @@ export function neighbours(route: string): { prev: Entry | null; next: Entry | n
   return { prev: all[i - 1] ?? null, next: all[i + 1] ?? null };
 }
 
+const KINDS: Kind[] = ['rules', 'stances', 'skills', 'agents', 'commands', 'hooks', 'output-styles', 'docs'];
+
+/** Every route the site builds, so a link can be checked before it is rendered. */
+export function siteRoutes(): Set<string> {
+  const r = getRegistry();
+  return new Set<string>([
+    '/',
+    '/install/',
+    '/compatibility/',
+    '/cli/',
+    ...KINDS.map((k) => `/${k}/`),
+    ...r.stances.map((d) => d.route),
+    ...flatten().map((e) => e.route),
+  ]);
+}
+
 export function getTree(): TreeGroup[] {
   const r = getRegistry();
   const c = getCounts();

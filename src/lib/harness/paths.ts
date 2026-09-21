@@ -23,7 +23,26 @@ export function sourceDir(kind: string, root = VENDOR): string {
   return next && fs.existsSync(path.join(root, next)) ? next : kind === 'docs' ? 'docs' : `claude/${kind}`;
 }
 
-export function product(root = VENDOR) {
+/** One selling point inside a capability group, optionally pointing at the file that defines it. */
+export interface Feature { name: string; line: string; doc?: string }
+export interface Capability { id: string; title: string; pitch: string; features: Feature[] }
+/** An `on_the_way` item: a GitHub issue, a catalog entry, or a doc that already describes it. */
+export interface Planned { title: string; line: string; issue?: number; catalog?: string; doc?: string }
+
+export interface Product {
+  headline: string;
+  description: string;
+  stances?: string;
+  hero?: { title: string; subtitle: string; proof?: string };
+  capabilities?: Capability[];
+  on_the_way?: Planned[];
+}
+
+/**
+ * Positioning copy from the release. Older pins carry only `headline`, `description` and
+ * `stances`; the capability keys are optional and every reader must degrade without them.
+ */
+export function product(root = VENDOR): Product {
   const file = path.join(root, 'product.json');
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {
     headline: 'Agent Harness reference',
