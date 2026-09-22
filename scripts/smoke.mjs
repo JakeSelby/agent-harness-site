@@ -15,6 +15,19 @@ const fail = (msg) => {
   console.error(`✗ ${msg}`);
 };
 
+const htmlPages = () => {
+  const out = [];
+  const visit = (dir) => {
+    for (const name of fs.readdirSync(dir)) {
+      const p = path.join(dir, name);
+      if (fs.statSync(p).isDirectory()) visit(p);
+      else if (name === 'index.html') out.push(p);
+    }
+  };
+  visit(dist);
+  return out;
+};
+
 const manifestFile = path.join(dist, 'manifest.json');
 if (!fs.existsSync(manifestFile)) {
   fail('dist/manifest.json missing — did the build run?');
@@ -36,6 +49,53 @@ for (const r of manifest.routes) {
 
 for (const must of ['404.html', 'pagefind/pagefind.js', 'sitemap-index.xml', 'manifest.json']) {
   if (!fs.existsSync(path.join(dist, must))) fail(`dist/${must} missing`);
+}
+
+// The brand assets the head points at are built and served.
+const ORIGIN = 'https://agent-harness.jakeselby.com/';
+for (const asset of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'og.png']) {
+  if (!fs.existsSync(path.join(dist, asset))) fail(`dist/${asset} missing`);
+}
+
+// Every social image URL is absolute, on this origin, and resolves to a file in dist.
+const metaContents = (html, key, attr) => {
+  const re = new RegExp(`<meta[^>]*${attr}="${key}"[^>]*content="([^"]*)"[^>]*>`, 'g');
+  return [...html.matchAll(re)].map((m) => m[1]);
+};
+const socialPages = [...new Set(['/', ...manifest.routes.map((r) => r.route)])];
+for (const route of socialPages) {
+  const file = fileFor(route);
+  if (!file.endsWith('.html') || !fs.existsSync(file)) continue;
+  const html = fs.readFileSync(file, 'utf8');
+  const images = [...metaContents(html, 'og:image', 'property'), ...metaContents(html, 'twitter:image', 'name')];
+  if (images.length < 2) fail(`${route} carries ${images.length} social image tag(s), expected og:image and twitter:image`);
+  for (const url of images) {
+    if (!url.startsWith(ORIGIN)) {
+      fail(`${route} social image ${url} is not on ${ORIGIN}`);
+      continue;
+    }
+    const asset = path.join(dist, url.slice(ORIGIN.length));
+    if (!fs.existsSync(asset)) fail(`${route} social image ${url} has no file at dist/${path.relative(dist, asset)}`);
+  }
+  if (metaContents(html, 'twitter:card', 'name')[0] !== 'summary_large_image') {
+    fail(`${route} twitter:card is not summary_large_image`);
+  }
+}
+
+// No em dash (U+2014) in the copy this change owns. The title and og:description still carry
+// one from Layout.astro:15 and the pinned submodule's product.json; widen this to <title> and
+// og:description once the repin PR (fix/repin-v0.11.1) lands its title fix.
+for (const file of htmlPages()) {
+  const html = fs.readFileSync(file, 'utf8');
+  const owned = [
+    ...metaContents(html, 'og:image', 'property'),
+    ...metaContents(html, 'twitter:image', 'name'),
+    ...metaContents(html, 'og:image:alt', 'property'),
+    ...[...html.matchAll(/<link[^>]*rel="(?:icon|apple-touch-icon)"[^>]*>/g)].map((m) => m[0]),
+  ];
+  for (const text of owned) {
+    if (text.includes('\u2014')) fail(`${path.relative(dist, file)} carries an em dash in ${text}`);
+  }
 }
 
 // The submodule is at the tagged release the site claims to render.

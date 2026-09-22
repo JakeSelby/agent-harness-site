@@ -11,6 +11,7 @@ interface Props {
 }
 const { title, description, hasSidebar = false } = Astro.props;
 const v = version();
+const ogImage = new URL('/og.png', Astro.site ?? 'https://agent-harness.jakeselby.com').href;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://agent-harness.jakeselby.com').href;
 const fullTitle = Astro.url.pathname === '/' ? 'agent-harness — the reference' : `${title} · agent-harness`;
 ---
@@ -28,7 +29,12 @@ const fullTitle = Astro.url.pathname === '/' ? 'agent-harness — the reference'
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content="agent-harness" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Agent Harness. Your way of working, across AI agents. Projected into Claude Code and Codex." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,7 +43,9 @@ const fullTitle = Astro.url.pathname === '/' ? 'agent-harness — the reference'
       rel="stylesheet"
     />
     <title>{fullTitle}</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🧰</text></svg>" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <slot name="head" />
     <script is:inline src="/analytics.js" defer></script>
   </head>
