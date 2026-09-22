@@ -12,7 +12,7 @@ interface Props {
 const { title, description, hasSidebar = false } = Astro.props;
 const v = version();
 const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://agent-harness.jakeselby.com').href;
-const fullTitle = Astro.url.pathname === '/' ? 'agent-harness — the reference' : `${title} · agent-harness`;
+const fullTitle = Astro.url.pathname === '/' ? 'agent-harness: the reference' : `${title} · agent-harness`;
 ---
 
 <!doctype html>
