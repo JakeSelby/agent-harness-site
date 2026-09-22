@@ -1,0 +1,87 @@
+name: repin
+
+# Opens a pull request when the harness publishes a release tag newer than the
+# one vendor/agent-harness is pinned at. It never merges, and it never pushes
+# to main.
+#
+# A pull request opened with the default GITHUB_TOKEN does not trigger other
+# workflows, so build.yml will not run on it. Before merging a repin pull
+# request, run build.yml by hand: Actions, build, "Run workflow", and pick the
+# repin/<tag> branch.
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: repin
+  cancel-in-progress: false
+
+jobs:
+  repin:
+    name: open a pin pull request
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Compare the pin to the newest release tag
+        id: tags
+        run: |
+          git -C vendor/agent-harness fetch --tags --quiet origin
+          latest=$(node scripts/latest-harness-tag.mjs)
+          current=$(git -C vendor/agent-harness describe --tags --exact-match 2>/dev/null || echo unknown)
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          if [ "$latest" = "$current" ]; then
+            echo "behind=false" >> "$GITHUB_OUTPUT"
+            echo "pinned at $current, the newest tag"
+          else
+            echo "behind=true" >> "$GITHUB_OUTPUT"
+            echo "pinned at $current, newest tag is $latest"
+          fi
+
+      - name: Open the pull request
+        if: steps.tags.outputs.behind == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST: ${{ steps.tags.outputs.latest }}
+          CURRENT: ${{ steps.tags.outputs.current }}
+        run: |
+          set -euo pipefail
+          title="chore(vendor): pin agent-harness $LATEST"
+          open=$(gh pr list --state open --search "$LATEST in:title" --json title \
+            --jq "[.[] | select(.title == \"$title\")] | length")
+          if [ "$open" != 0 ]; then
+            echo "a pull request titled \"$title\" is already open"
+            exit 0
+          fi
+          branch="repin/$LATEST"
+          git -C vendor/agent-harness checkout --quiet "$LATEST"
+          git checkout -b "$branch"
+          git add vendor/agent-harness
+          # The bot identity is the one GitHub itself publishes for
+          # github-actions; no personal identity signs an automated pin.
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git commit --quiet -m "$title" \
+            -m "Moves the vendored harness pin from $CURRENT to $LATEST."
+          git push --quiet origin "$branch"
+          {
+            printf 'Moves `vendor/agent-harness` from `%s` to `%s`.\n\n' "$CURRENT" "$LATEST"
+            printf 'Opened by `.github/workflows/repin.yml`. `build.yml` does not run on a '
+            printf 'pull request opened with the default `GITHUB_TOKEN`, so dispatch `build` '
+            printf 'on `%s` and read it green before merging.\n' "$branch"
+          } > "$RUNNER_TEMP/repin-body.md"
+          gh pr create --title "$title" --label repin --head "$branch" --base main \
+            --body-file "$RUNNER_TEMP/repin-body.md"
