@@ -50,10 +50,16 @@ and `git status --porcelain` is empty (generated output and local config are ign
   latest harness release with the pinned tag, checks out anything newer, runs the gate against it,
   and only then commits `chore(vendor): pin agent-harness vX.Y.Z` to `main`. A red gate pushes
   nothing and fails the run. `scripts/repin.mjs` decides, so the version compare has tests.
+- **`.github/workflows/drift.yml` watches the outcome.** Every two hours `scripts/drift.mjs`
+  compares the live `/manifest.json` with the latest harness release and keeps one
+  `release-drift` issue open while they differ — at once when a repin run for the release has
+  failed, otherwise after six hours — and closes it once the site is current. A red repin gate
+  usually means new harness content the site's tests do not expect yet: fix the site against
+  that tag, then dispatch `repin`.
 - **A hand repin is allowed only to a release tag** — never a branch, never a bare commit. The
   smoke test refuses any other commit and so does the workflow.
 - **After any repin, confirm the live `/manifest.json` names the new version and commit:**
-  `curl -s https://agent-harness.jakeselby.com/manifest.json | head -c 200`.
+  `node scripts/drift.mjs --dry-run` reports the decision without touching issues.
 
 ## Things that will bite you
 
