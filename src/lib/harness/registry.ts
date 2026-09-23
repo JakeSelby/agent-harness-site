@@ -73,7 +73,7 @@ export const KIND_BLURB: Record<Kind, string> = {
   stances: 'Preferences a reasonable engineer might hold the other way. One variant per dimension is linked into every session.',
   skills: 'Procedures loaded on invocation. They carry the reasoning and the examples the rules point at.',
   agents: 'Shared responsibility and authority contracts. Runtime adapters bind native models, effort and tools.',
-  commands: 'The ritual in five keystrokes: research, plan, build, review, hand off.',
+  commands: 'The delivery loop, from a question to a merged pull request and a closed-out session.',
   hooks: 'Shared policy checks composed by runtime lifecycle adapters. Native activation and enforcement are qualified separately.',
   'output-styles': 'The shape of every reply.',
   docs: 'The longer explanations: how the layers compose, what the sync touches, what the harness leaves out.',
@@ -311,7 +311,14 @@ function agents(): Entry[] {
   });
 }
 
-const COMMAND_ORDER = ['research', 'plan', 'build', 'review', 'handoff'];
+// The delivery loop in the order the harness README gives it. A command this list does not
+// know yet sorts after it, by name, and carries no step, rather than claiming step 0.
+export const COMMAND_ORDER = ['research', 'plan', 'build', 'review', 'land', 'handoff', 'close-out'];
+
+const commandRank = (id: string) => {
+  const i = COMMAND_ORDER.indexOf(id);
+  return i === -1 ? COMMAND_ORDER.length : i;
+};
 
 function commands(): Entry[] {
   const list = listDir(sourceDir('commands'), (f) => f.endsWith('.md')).map((f) => {
@@ -331,13 +338,15 @@ function commands(): Entry[] {
       lines: lineCount(text),
       meta: [
         { label: 'Invoke', value: `/${id}${data['argument-hint'] ? ' ' + data['argument-hint'] : ''}`, mono: true },
-        { label: 'Step', value: `${COMMAND_ORDER.indexOf(id) + 1} of ${COMMAND_ORDER.length} in the ritual` },
+        ...(COMMAND_ORDER.includes(id)
+          ? [{ label: 'Step', value: `${COMMAND_ORDER.indexOf(id) + 1} of ${COMMAND_ORDER.length} in the delivery loop` }]
+          : []),
         { label: 'Path', value: `${sourceDir('commands')}/${f}`, mono: true },
       ],
       frontmatter: data,
     };
   });
-  return list.sort((a, b) => COMMAND_ORDER.indexOf(a.id) - COMMAND_ORDER.indexOf(b.id));
+  return list.sort((a, b) => commandRank(a.id) - commandRank(b.id) || a.id.localeCompare(b.id));
 }
 
 function outputStyles(): Entry[] {

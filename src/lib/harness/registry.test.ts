@@ -5,6 +5,7 @@ import { VENDOR, sourceDir } from './paths.ts';
 import { listHooks } from './hooks.ts';
 import { honesty, listCli } from './cli.ts';
 import {
+  COMMAND_ORDER,
   entriesOf,
   firstParagraph,
   firstSentence,
@@ -93,8 +94,19 @@ describe('the registry', () => {
     }
   });
 
-  it('orders commands as the ritual runs', () => {
-    expect(r.commands.map((cmd) => cmd.id)).toEqual(['research', 'plan', 'build', 'review', 'handoff']);
+  it('orders commands as the delivery loop runs', () => {
+    const ids = r.commands.map((cmd) => cmd.id);
+    const files = fs.readdirSync(path.join(VENDOR, sourceDir('commands'))).filter((f) => f.endsWith('.md'));
+    expect(ids).toHaveLength(files.length);
+    const known = ids.filter((id) => COMMAND_ORDER.includes(id));
+    expect(known).toEqual(COMMAND_ORDER.filter((id) => ids.includes(id)));
+    expect(ids.slice(0, known.length)).toEqual(known);
+    expect(known.slice(0, 4)).toEqual(['research', 'plan', 'build', 'review']);
+    for (const cmd of r.commands) {
+      const step = cmd.meta.find((m) => m.label === 'Step')?.value;
+      if (COMMAND_ORDER.includes(cmd.id)) expect(step).toMatch(/^[1-9]\d* of \d+ in the delivery loop$/);
+      else expect(step).toBeUndefined();
+    }
   });
 
   it('lists the files a skill ships', () => {

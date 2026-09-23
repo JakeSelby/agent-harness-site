@@ -81,6 +81,8 @@ export interface LinkOptions { version?: string; exists?: (rel: string) => boole
 /**
  * Rewrite relative links written for GitHub (`docs/how-it-works.md`, `../rules/x.md`)
  * to this site's routes, or to the file on GitHub when the site has no page for it.
+ * A link to a file the harness does not carry (a quoted README's `TAGS.md`, say) has
+ * nowhere to go, so it renders as its text.
  */
 export function remarkHarnessLinks(options: LinkOptions = {}): Transformer {
   const exists = options.exists ?? existsInVendor;
@@ -93,7 +95,14 @@ export function remarkHarnessLinks(options: LinkOptions = {}): Transformer {
       const resolved = resolveRelative(from, node.url);
       if (!resolved) return;
       const route = routeForRepoPath(resolved.rel, version, exists);
-      if (route) node.url = route + (route.includes('#') ? '' : resolved.suffix);
+      if (route) {
+        node.url = route + (route.includes('#') ? '' : resolved.suffix);
+        return;
+      }
+      node.value = toText(node);
+      node.type = 'text';
+      delete node.url;
+      delete node.children;
     });
   };
 }

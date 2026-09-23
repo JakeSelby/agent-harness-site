@@ -62,6 +62,12 @@ describe('the markdown pipeline', () => {
     expect(html).toContain('href="/docs/usage/"');
   });
 
+  it('renders a link to a file the harness does not carry as its text', async () => {
+    const { html } = await render('A quoted README points at [**TAGS**.md](TAGS.md#top) here.', '_bmad-output/research/digest.md');
+    expect(html).not.toContain('href=');
+    expect(html).toContain('A quoted README points at TAGS.md here.');
+  });
+
   it('turns inline code naming a harness file into a link, and leaves placeholders alone', async () => {
     const { html } = await render('Read `docs/usage.md`, edit `claude/rules/secrets.md`, not `claude/skills/<name>/` or `docs/nope.md`.', 'README.md');
     expect(html).toContain('<a href="/docs/usage/"><code>docs/usage.md</code></a>');
@@ -98,8 +104,9 @@ describe('every markdown file in the harness', () => {
       if (/^https?:/.test(href) || href.startsWith('#')) continue;
       expect(href, `${rel} links to ${href}`).not.toMatch(/\.md(#|$)/);
     }
-    // Every bare <word> written in prose survives as visible text.
-    const prose = md.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+    // Every bare <word> written in prose survives as visible text. An HTML comment is
+    // not prose: it renders to nothing by design, placeholders and all.
+    const prose = md.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '').replace(/<!--[\s\S]*?-->/g, '');
     const decoded = decode(html);
     for (const m of prose.matchAll(/<([a-z][\w-]*)>/g)) {
       const tag = m[1];
