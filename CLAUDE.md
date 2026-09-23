@@ -79,6 +79,12 @@ and `git status --porcelain` is empty (generated output and local config are ign
   pin as jakeselby-com and sovereign-library.
 - **The routing CloudFront Function rewrites clean URLs to `index.html`.** `trailingSlash` is
   `always`, so every internal link ends in `/`; the smoke test checks each one resolves.
+- **The commands follow the harness README's delivery loop.** `COMMAND_ORDER` in
+  `src/lib/harness/registry.ts` lists them; a command it does not know sorts last with no step.
+- **Harness `main` after 0.12.0 registers hooks through one dispatcher per event.**
+  `listHooks` joins per-hook entries in `claude/settings.template.json`, which that layout no
+  longer has, so the hooks page renders empty against it. Adapt `listHooks` before pinning the
+  first release that carries the change; `npx vitest run` against the new tag shows it.
 
 ## Deploying
 
