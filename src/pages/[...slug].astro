@@ -213,12 +213,21 @@ const kindPill = (e: Entry): string | null => {
             <p set:html={inlineCode(para.replace(/\s+/g, ' '))}></p>
           ))}
           <h2 id="when-it-runs">When it runs</h2>
-          <p>
-            The policy is associated with <code>{e.hook.event}</code>{e.hook.matcher && <> when the tool matches <code>{e.hook.matcher}</code></>}
-            {e.hook.timeout && <>, with a {e.hook.timeout}-second timeout</>}. It is registered
-            {e.hook.always ? ' in every install' : <> only when the <a href={`/stances/${e.hook.stance}/${e.hook.variant}/`}><code>{e.hook.stance}</code> stance is <code>{e.hook.variant}</code></a></>};
-            the entry lives in <code>settings.template.json</code> and <code>harness sync</code> merges it into your <code>settings.json</code> under the id <code>harness:{e.id}</code>.
-          </p>
+          {e.hook.registration === 'dispatcher' ? (
+            <p>
+              The policy answers on <code>{e.hook.event}</code>. It runs
+              {e.hook.always ? ' in every install' : <> only when the <a href={`/stances/${e.hook.stance}/${e.hook.variant}/`}><code>{e.hook.stance}</code> stance is <code>{e.hook.variant}</code></a></>}.
+              It has no settings entry of its own: <code>harness sync</code> registers one dispatcher command per event{e.hook.dispatcher && <>, <code>{e.hook.dispatcher}</code></>}, marked <code>harness:runtime-{e.hook.event.toLowerCase()}</code> in your <code>settings.json</code>.
+              That dispatcher routes each call to the policies its event and tool need and composes their answers; <code>{e.id}</code> is the policy's id in <code>OWNERSHIP.json</code>.
+            </p>
+          ) : (
+            <p>
+              The policy is associated with <code>{e.hook.event}</code>{e.hook.matcher && <> when the tool matches <code>{e.hook.matcher}</code></>}
+              {e.hook.timeout && <>, with a {e.hook.timeout}-second timeout</>}. It is registered
+              {e.hook.always ? ' in every install' : <> only when the <a href={`/stances/${e.hook.stance}/${e.hook.variant}/`}><code>{e.hook.stance}</code> stance is <code>{e.hook.variant}</code></a></>};
+              the entry lives in <code>settings.template.json</code> and <code>harness sync</code> merges it into your <code>settings.json</code> under the id <code>harness:{e.id}</code>.
+            </p>
+          )}
           {e.hook.helper && <p>It shares <code>{e.hook.helper}</code> with the filter that runs in the same event; that file is a helper, not a hook.</p>}
           <h2 id="source">The script</h2>
           <SourceBlock code={e.hook.source} lang="python" label={e.hook.file} />
