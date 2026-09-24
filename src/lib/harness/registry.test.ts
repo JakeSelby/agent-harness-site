@@ -149,7 +149,7 @@ describe('the registry', () => {
 
 describe('hooks', () => {
   const hooks = listHooks();
-  it('joins settings, ownership and docstrings into the 11 hooks v0.7.0 registers', () => {
+  it('joins ownership and docstrings into the 11 policies the dispatcher calls', () => {
     expect(hooks).toHaveLength(11);
     expect(hooks.map((h) => h.id).sort()).toEqual(['brief-guard', 'filter-output', 'grade-bash', 'neutralize', 'plan-card', 'plan-webfetch', 'readonly-bash', 'session', 'stop-gate', 'tier-spawns', 'usage-log']);
   });
@@ -159,13 +159,17 @@ describe('hooks', () => {
     expect(card.stance).toBe('plan-ceremony');
     expect(card.variant).toBe('review-card');
     expect(card.event).toBe('PostToolUse');
-    expect(card.matcher).toBe('Write|Edit');
+    expect(card.registration).toBe('dispatcher');
+    expect(card.matcher).toBeNull();
+    expect(card.timeout).toBeNull();
+    expect(card.dispatcher).toBe('adapters/claude-code/hook.py');
     expect(hooks.filter((h) => h.always)).toHaveLength(10);
   });
   it('carries the docstring and the helper', () => {
     const gate = hooks.find((h) => h.id === 'stop-gate')!;
     expect(gate.summary).toMatch(/^Stop hook: run the repository's own gate/);
     expect(gate.source).toContain('MAX_BLOCKS');
+    expect(hooks.find((h) => h.id === 'tier-spawns')?.file).toBe(`${sourceDir('hooks')}/tier-agent-spawns.py`);
     expect(hooks.find((h) => h.id === 'filter-output')?.helper).toBe(`${sourceDir('hooks')}/filter-lines.py`);
   });
 });

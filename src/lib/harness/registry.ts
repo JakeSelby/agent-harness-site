@@ -390,7 +390,8 @@ function hooks(): Entry[] {
     meta: [
       { label: 'Event', value: h.event, mono: true },
       ...(h.matcher ? [{ label: 'Matcher', value: h.matcher, mono: true }] : []),
-      { label: 'Registered', value: h.always ? 'always' : `when ${h.stance} = ${h.variant}`, tone: h.always ? undefined : ('amber' as const), mono: !h.always },
+      { label: h.registration === 'dispatcher' ? 'Runs' : 'Registered', value: h.always ? 'always' : `when ${h.stance} = ${h.variant}`, tone: h.always ? undefined : ('amber' as const), mono: !h.always },
+      ...(h.dispatcher ? [{ label: 'Dispatcher', value: h.dispatcher, mono: true }] : []),
       ...(h.timeout ? [{ label: 'Timeout', value: `${h.timeout}s` }] : []),
       { label: 'Script', value: h.file, mono: true },
       ...(h.helper ? [{ label: 'Helper', value: h.helper, mono: true }] : []),

@@ -81,10 +81,10 @@ and `git status --porcelain` is empty (generated output and local config are ign
   `always`, so every internal link ends in `/`; the smoke test checks each one resolves.
 - **The commands follow the harness README's delivery loop.** `COMMAND_ORDER` in
   `src/lib/harness/registry.ts` lists them; a command it does not know sorts last with no step.
-- **Harness `main` after 0.12.0 registers hooks through one dispatcher per event.**
-  `listHooks` joins per-hook entries in `claude/settings.template.json`, which that layout no
-  longer has, so the hooks page renders empty against it. Adapt `listHooks` before pinning the
-  first release that carries the change; `npx vitest run` against the new tag shows it.
+- **Harness 0.13.0 and later register hooks through one dispatcher per event.** Their
+  `settings.template.json` has no per-hook entries, so `listHooks` reads each policy id and event
+  from `claude/OWNERSHIP.json` and resolves its script with `scriptFor`; older pins still read the
+  per-hook entries. An id that matches no script, or two, fails the tests and the build.
 
 ## Deploying
 
