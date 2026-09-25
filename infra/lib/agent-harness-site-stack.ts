@@ -120,6 +120,12 @@ function handler(event) {
       comment: `${DOMAIN} → CloudFront (agent-harness reference site)`,
     });
 
+    // model-citizen.dev is registered elsewhere; this zone exists first so its name servers
+    // can be delegated at the registrar before the site moves onto the apex.
+    const modelCitizenZone = new route53.PublicHostedZone(this, 'ModelCitizenZone', {
+      zoneName: 'model-citizen.dev',
+    });
+
     // ── CI deploy role (GitHub Actions, OIDC) ────────────────────────────────
     // Trusts only this repository's main branch and can do only what
     // scripts/deploy-site.sh does: write the bucket, invalidate the distribution,
@@ -175,5 +181,9 @@ function handler(event) {
       description: 'CloudFront domain for smoke-testing before DNS propagates',
     });
     new cdk.CfnOutput(this, 'SiteUrl', { value: `https://${DOMAIN}` });
+    new cdk.CfnOutput(this, 'ModelCitizenNameServers', {
+      value: cdk.Fn.join(',', modelCitizenZone.hostedZoneNameServers!),
+      description: 'Name servers to enter at the model-citizen.dev registrar',
+    });
   }
 }
