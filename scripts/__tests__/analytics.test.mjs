@@ -8,13 +8,14 @@ const source = readFileSync(
   "utf8",
 );
 const production = [
-  ["agent-harness", "skills"],
-  ["sovereign", "design"],
-  ["fable", "other"],
-  ["groundwork", "lists"],
-  ["research", "engagements"],
-  ["cortex", "brain"],
-  ["consul", "sources"],
+  ["model-citizen.dev", "skills"],
+  ["agent-harness.jakeselby.com", "skills"],
+  ["sovereign.jakeselby.com", "design"],
+  ["fable.jakeselby.com", "other"],
+  ["groundwork.jakeselby.com", "lists"],
+  ["research.jakeselby.com", "engagements"],
+  ["cortex.jakeselby.com", "brain"],
+  ["consul.jakeselby.com", "sources"],
 ];
 
 function browser(host, path = "/") {
@@ -87,12 +88,12 @@ function browser(host, path = "/") {
   };
 }
 
-for (const [name, section] of production) {
+for (const [host, section] of production) {
   test(
-    name + ": one loader, explicit initial view, duplicate boot is harmless",
+    host + ": one loader, explicit initial view, duplicate boot is harmless",
     () => {
       const b = browser(
-        name + ".jakeselby.com",
+        host,
         "/" + section + "/secret-id?email=user@example.com#secret",
       );
       b.boot();
@@ -114,7 +115,7 @@ for (const [name, section] of production) {
       assert.equal(b.views().length, 1);
       assert.equal(
         b.views()[0][2].page_location,
-        "https://" + name + ".jakeselby.com/" + section,
+        "https://" + host + "/" + section,
       );
       assert.equal(b.views()[0][2].page_referrer, "https://example.com");
       assert.doesNotMatch(
@@ -125,6 +126,19 @@ for (const [name, section] of production) {
   );
 }
 
+test("the harness site reports as Model Citizen at its new host and Agent Harness at its old one", () => {
+  for (const [host, title] of [
+    ["model-citizen.dev", "Model Citizen"],
+    ["agent-harness.jakeselby.com", "Agent Harness"],
+  ]) {
+    const b = browser(host, "/changelog/");
+    b.flush();
+    assert.equal(b.views().length, 1);
+    assert.equal(b.views()[0][2].page_title, title);
+    assert.equal(b.views()[0][2].page_location, "https://" + host + "/changelog");
+  }
+});
+
 test("unknown, local, preview, API and lookalike hosts never initialize", () => {
   for (const host of [
     "localhost",
@@ -133,6 +147,8 @@ test("unknown, local, preview, API and lookalike hosts never initialize", () => 
     "preview.jakeselby.com",
     "api.jakeselby.com",
     "research.jakeselby.com.evil.test",
+    "model-citizen.dev.evil.test",
+    "www.model-citizen.dev",
     "toString",
   ]) {
     const b = browser(host);
@@ -245,10 +261,10 @@ test("excluded routes emit nothing after initialization and malformed paths are 
 });
 
 test("root token fragments never initialize analytics on any production host", () => {
-  for (const [name] of production) {
+  for (const [host] of production) {
     for (const key of ["code", "access_token", "id_token"]) {
       const b = browser(
-        name + ".jakeselby.com",
+        host,
         "/#" + key + "=secret&state=private",
       );
       b.flush();

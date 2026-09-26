@@ -11,8 +11,8 @@ const VERSION = '9.9.9';
 
 const head = (overrides = {}) => {
   const tags = {
-    'og:image': 'https://agent-harness.jakeselby.com/og.png',
-    'twitter:image': 'https://agent-harness.jakeselby.com/og.png',
+    'og:image': 'https://model-citizen.dev/og.png',
+    'twitter:image': 'https://model-citizen.dev/og.png',
     'og:image:alt': 'Agent Harness. Your way of working, across AI agents.',
     'twitter:card': 'summary_large_image',
     ...overrides,
@@ -26,9 +26,14 @@ const head = (overrides = {}) => {
     .join('\n');
 };
 
-const page = (overrides) => `<!doctype html><html><head>${head(overrides)}</head><body></body></html>`;
+const BANNER =
+  '<aside class="rename" aria-label="Name change">\n  <p>Model Citizen was formerly ' +
+  '<a href="https://github.com/JakeSelby/agent-harness">agent-harness</a>: same project, new name.</p>\n</aside>';
 
-function smoke({ overrides = {}, assets = ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'og.png'] } = {}) {
+const page = (overrides, banner = BANNER) =>
+  `<!doctype html><html><head>${head(overrides)}</head><body>${banner}</body></html>`;
+
+function smoke({ overrides = {}, assets = ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'og.png'], banner = BANNER, notFound = page() } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'site-smoke-test-'));
   try {
     mkdirSync(join(root, 'scripts'));
@@ -47,10 +52,11 @@ function smoke({ overrides = {}, assets = ['favicon.svg', 'favicon.ico', 'apple-
     mkdirSync(join(dist, 'docs'), { recursive: true });
     mkdirSync(join(dist, 'pagefind'), { recursive: true });
     for (const asset of assets) writeFileSync(join(dist, asset), 'x');
-    for (const must of ['404.html', 'pagefind/pagefind.js', 'sitemap-index.xml']) {
+    for (const must of ['pagefind/pagefind.js', 'sitemap-index.xml']) {
       writeFileSync(join(dist, must), 'x');
     }
-    writeFileSync(join(dist, 'index.html'), page(overrides));
+    writeFileSync(join(dist, '404.html'), notFound);
+    writeFileSync(join(dist, 'index.html'), page(overrides, banner));
     writeFileSync(join(dist, 'docs/index.html'), page());
     writeFileSync(
       join(dist, 'manifest.json'),
@@ -80,7 +86,7 @@ test('a missing og.png fails', () => {
   const { status, out } = smoke({ assets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png'] });
   assert.equal(status, 1);
   assert.match(out, /dist\/og\.png missing/);
-  assert.match(out, /social image https:\/\/agent-harness\.jakeselby\.com\/og\.png has no file/);
+  assert.match(out, /social image https:\/\/model-citizen\.dev\/og\.png has no file/);
 });
 
 test('a missing icon fails', () => {
@@ -92,7 +98,7 @@ test('a missing icon fails', () => {
 test('an off-origin social image fails', () => {
   const { status, out } = smoke({ overrides: { 'og:image': 'https://example.com/og.png' } });
   assert.equal(status, 1);
-  assert.match(out, /is not on https:\/\/agent-harness\.jakeselby\.com\//);
+  assert.match(out, /is not on https:\/\/model-citizen\.dev\//);
 });
 
 test('a relative social image fails', () => {
@@ -117,4 +123,28 @@ test('an em dash in og:image:alt fails', () => {
   const { status, out } = smoke({ overrides: { 'og:image:alt': `Agent Harness ${String.fromCharCode(0x2014)} the reference` } });
   assert.equal(status, 1);
   assert.match(out, /carries an em dash/);
+});
+
+test('a page without the name-change banner fails', () => {
+  const { status, out } = smoke({ banner: '' });
+  assert.equal(status, 1);
+  assert.match(out, /index\.html has no name-change banner/);
+});
+
+test('the 404 page needs the banner too', () => {
+  const { status, out } = smoke({ notFound: '<!doctype html><html><body></body></html>' });
+  assert.equal(status, 1);
+  assert.match(out, /404\.html has no name-change banner/);
+});
+
+test('a banner with other words fails', () => {
+  const { status, out } = smoke({ banner: BANNER.replace('same project', 'a new project') });
+  assert.equal(status, 1);
+  assert.match(out, /banner reads "Model Citizen was formerly agent-harness: a new project, new name\."/);
+});
+
+test('a banner that does not link to the old repository fails', () => {
+  const { status, out } = smoke({ banner: BANNER.replace('https://github.com/JakeSelby/agent-harness', 'https://example.com') });
+  assert.equal(status, 1);
+  assert.match(out, /banner does not link to the agent-harness repository/);
 });

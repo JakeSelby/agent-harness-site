@@ -2,6 +2,19 @@
 (function () {
   "use strict";
   const sites = {
+    "model-citizen.dev": [
+      "Model Citizen",
+      [
+        "rules",
+        "skills",
+        "hooks",
+        "agents",
+        "preferences",
+        "docs",
+        "changelog",
+        "contributing",
+      ],
+    ],
     "agent-harness.jakeselby.com": [
       "Agent Harness",
       [
