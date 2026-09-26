@@ -19,6 +19,9 @@ const WWW = `www.${DOMAIN}`;
 // The site's first home. It keeps its certificate name and record and answers with a 301.
 const LEGACY_DOMAIN = 'agent-harness.jakeselby.com';
 const REPO = 'JakeSelby/agent-harness-site';
+// The repository is renamed to model-citizen-site. GitHub names the repository in the token's
+// subject, so the deploy role trusts both names until nothing runs under the old one.
+const REPO_NAMES = ['JakeSelby/model-citizen-site', REPO];
 
 /**
  * model-citizen.dev: the public reference site for Model Citizen, formerly agent-harness.
@@ -146,10 +149,10 @@ export class AgentHarnessSiteStack extends cdk.Stack {
         // the newer owner@id/repo@id form — so both are accepted, as the other
         // deploy roles in this account do.
         StringLike: {
-          'token.actions.githubusercontent.com:sub': [
-            `repo:${REPO}:ref:refs/heads/main`,
-            `repo:${REPO.replace('/', '@*/')}@*:ref:refs/heads/main`,
-          ],
+          'token.actions.githubusercontent.com:sub': REPO_NAMES.flatMap((name) => [
+            `repo:${name}:ref:refs/heads/main`,
+            `repo:${name.replace('/', '@*/')}@*:ref:refs/heads/main`,
+          ]),
         },
       }),
       maxSessionDuration: cdk.Duration.hours(1),
