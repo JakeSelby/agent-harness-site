@@ -64,6 +64,8 @@ test('synthesis uses the supplied resource IDs and preserves private origin acce
         Condition: {
           StringEquals: { 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com' },
           StringLike: { 'token.actions.githubusercontent.com:sub': [
+            'repo:JakeSelby/model-citizen-site:ref:refs/heads/main',
+            'repo:JakeSelby@*/model-citizen-site@*:ref:refs/heads/main',
             'repo:JakeSelby/agent-harness-site:ref:refs/heads/main',
             'repo:JakeSelby@*/agent-harness-site@*:ref:refs/heads/main',
           ] },
