@@ -52,7 +52,7 @@ for (const must of ['404.html', 'pagefind/pagefind.js', 'sitemap-index.xml', 'ma
 }
 
 // The brand assets the head points at are built and served.
-const ORIGIN = 'https://agent-harness.jakeselby.com/';
+const ORIGIN = 'https://model-citizen.dev/';
 for (const asset of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'og.png']) {
   if (!fs.existsSync(path.join(dist, asset))) fail(`dist/${asset} missing`);
 }
@@ -96,6 +96,24 @@ for (const file of htmlPages()) {
   for (const text of owned) {
     if (text.includes('\u2014')) fail(`${path.relative(dist, file)} carries an em dash in ${text}`);
   }
+}
+
+// Every built page carries the name-change banner, with its exact text and its link to the
+// old repository.
+const BANNER_TEXT = 'Model Citizen was formerly agent-harness: same project, new name.';
+const BANNER_LINK = 'href="https://github.com/JakeSelby/agent-harness"';
+const htmlUnder = (dir) =>
+  fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(dir, e.name);
+    return e.isDirectory() ? htmlUnder(p) : e.name.endsWith('.html') ? [p] : [];
+  });
+for (const file of htmlUnder(dist)) {
+  const html = fs.readFileSync(file, 'utf8');
+  const aside = html.match(/<aside[^>]*aria-label="Name change"[^>]*>([\s\S]*?)<\/aside>/);
+  const text = aside?.[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  if (!aside) fail(`${path.relative(dist, file)} has no name-change banner`);
+  else if (text !== BANNER_TEXT) fail(`${path.relative(dist, file)} banner reads "${text}"`);
+  else if (!aside[1].includes(BANNER_LINK)) fail(`${path.relative(dist, file)} banner does not link to the agent-harness repository`);
 }
 
 // The submodule is at the tagged release the site claims to render.

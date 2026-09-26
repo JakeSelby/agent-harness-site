@@ -14,7 +14,7 @@ import {
 // src/content.config.ts read it directly, so this site never copies a rule or a
 // skill by hand. See README.md for the bump procedure.
 export default defineConfig({
-  site: 'https://agent-harness.jakeselby.com',
+  site: 'https://model-citizen.dev',
   output: 'static',
   trailingSlash: 'always',
   integrations: [sitemap(), pagefind()],

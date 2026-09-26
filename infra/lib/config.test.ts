@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as cdk from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 import { readInfraConfig } from './config.js';
 import { AgentHarnessSiteStack } from './agent-harness-site-stack.js';
 
@@ -50,9 +50,9 @@ test('synthesis uses the supplied resource IDs and preserves private origin acce
   template.hasResourceProperties('AWS::CloudFront::Function', { Name: env.SITE_ROUTING_FUNCTION_NAME });
   template.hasResourceProperties('AWS::Route53::RecordSet', { HostedZoneId: env.SITE_HOSTED_ZONE_ID });
   template.hasResourceProperties('AWS::CertificateManager::Certificate', {
-    DomainValidationOptions: [
+    DomainValidationOptions: Match.arrayWith([
       { DomainName: 'agent-harness.jakeselby.com', HostedZoneId: env.SITE_HOSTED_ZONE_ID },
-    ],
+    ]),
   });
   template.hasResourceProperties('AWS::IAM::Role', {
     RoleName: env.SITE_DEPLOY_ROLE_NAME,

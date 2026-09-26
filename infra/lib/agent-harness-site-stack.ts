@@ -8,22 +8,28 @@ import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import type { InfraConfig } from './config.js';
+import { CANONICAL_HOST, ROUTING_FUNCTION_CODE } from './routing-function.js';
 
 export interface AgentHarnessSiteStackProps extends cdk.StackProps {
   config: InfraConfig;
 }
 
-const DOMAIN = 'agent-harness.jakeselby.com';
+const DOMAIN = CANONICAL_HOST;
+const WWW = `www.${DOMAIN}`;
+// The site's first home. It keeps its certificate name and record and answers with a 301.
+const LEGACY_DOMAIN = 'agent-harness.jakeselby.com';
 const REPO = 'JakeSelby/agent-harness-site';
 
 /**
- * agent-harness.jakeselby.com — the public reference site for the agent-harness repo.
+ * model-citizen.dev: the public reference site for Model Citizen, formerly agent-harness.
  *
  * Same shape as the other jakeselby.com surfaces:
- *   - ACM cert, DNS-validated against the jakeselby.com zone (us-east-1, for CloudFront)
+ *   - ACM cert for the apex, www and the old agent-harness.jakeselby.com host, DNS-validated
+ *     against the model-citizen.dev and jakeselby.com zones (us-east-1, for CloudFront)
  *   - Private S3 bucket behind origin access control, versioned, retained on delete
- *   - CloudFront with a viewer-request function rewriting clean URLs to index.html
- *   - Route53 A alias for the subdomain
+ *   - CloudFront with a viewer-request function that 301s every other host to the apex and
+ *     rewrites clean URLs to index.html
+ *   - Route53 A and AAAA aliases for the apex and www; the old host keeps its A alias
  *   - A GitHub Actions deploy role (OIDC) that can only sync the bucket and invalidate
  *
  * Prerequisites: the configured hosted zone and the account's GitHub OIDC provider
@@ -39,9 +45,19 @@ export class AgentHarnessSiteStack extends cdk.Stack {
       zoneName: 'jakeselby.com',
     });
 
+    // model-citizen.dev is registered elsewhere and delegated to this zone at the registrar.
+    const modelCitizenZone = new route53.PublicHostedZone(this, 'ModelCitizenZone', {
+      zoneName: DOMAIN,
+    });
+
     const cert = new acm.Certificate(this, 'Cert', {
       domainName: DOMAIN,
-      validation: acm.CertificateValidation.fromDns(hostedZone),
+      subjectAlternativeNames: [WWW, LEGACY_DOMAIN],
+      validation: acm.CertificateValidation.fromDnsMultiZone({
+        [DOMAIN]: modelCitizenZone,
+        [WWW]: modelCitizenZone,
+        [LEGACY_DOMAIN]: hostedZone,
+      }),
     });
 
     // Versioned so a bad `s3 sync --delete` is recoverable; old versions expire after 30 days.
@@ -54,31 +70,17 @@ export class AgentHarnessSiteStack extends cdk.Stack {
       autoDeleteObjects: false,
     });
 
-    // Astro writes skills/plan-authoring/index.html; without this, /skills/plan-authoring/
-    // is a missing key and S3 answers 403.
+    // Host redirect and clean-URL rewrite in one function; see routing-function.ts.
     const routingFunction = new cloudfront.Function(this, 'RoutingFunction', {
       functionName: config.routingFunctionName,
-      code: cloudfront.FunctionCode.fromInline(
-        `
-function handler(event) {
-  var request = event.request;
-  var uri = request.uri;
-  if (uri.endsWith('/')) {
-    request.uri += 'index.html';
-  } else if (!uri.includes('.')) {
-    request.uri += '/index.html';
-  }
-  return request;
-}
-      `.trim(),
-      ),
+      code: cloudfront.FunctionCode.fromInline(ROUTING_FUNCTION_CODE),
       runtime: cloudfront.FunctionRuntime.JS_2_0,
     });
 
     const origin = origins.S3BucketOrigin.withOriginAccessControl(bucket);
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultRootObject: 'index.html',
-      domainNames: [DOMAIN],
+      domainNames: [DOMAIN, WWW, LEGACY_DOMAIN],
       certificate: cert,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
@@ -113,18 +115,18 @@ function handler(event) {
       ],
     });
 
+    const siteTarget = route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution));
+    // The old host's record keeps its logical ID so the deploy updates nothing about it.
     new route53.ARecord(this, 'AliasRecord', {
       zone: hostedZone,
-      recordName: DOMAIN,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
-      comment: `${DOMAIN} → CloudFront (agent-harness reference site)`,
+      recordName: LEGACY_DOMAIN,
+      target: siteTarget,
+      comment: `${LEGACY_DOMAIN} → CloudFront (agent-harness reference site)`,
     });
-
-    // model-citizen.dev is registered elsewhere; this zone exists first so its name servers
-    // can be delegated at the registrar before the site moves onto the apex.
-    const modelCitizenZone = new route53.PublicHostedZone(this, 'ModelCitizenZone', {
-      zoneName: 'model-citizen.dev',
-    });
+    for (const [id, recordName] of [['Apex', DOMAIN], ['Www', WWW]] as const) {
+      new route53.ARecord(this, `${id}AliasRecord`, { zone: modelCitizenZone, recordName, target: siteTarget });
+      new route53.AaaaRecord(this, `${id}AliasRecordIpv6`, { zone: modelCitizenZone, recordName, target: siteTarget });
+    }
 
     // ── CI deploy role (GitHub Actions, OIDC) ────────────────────────────────
     // Trusts only this repository's main branch and can do only what
